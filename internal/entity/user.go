@@ -1,35 +1,24 @@
 package entity
 
-type UserRole int
+type UserRole string
 
 const (
-	Admin UserRole = iota
-	SuperAdmin
-	Staff
-	Usr
+	Admin      UserRole = "admin"
+	SuperAdmin UserRole = "superadmin" 
+	Staff      UserRole = "staff"
+	Usr        UserRole = "user"
 )
-
-var UserRoleString = map[UserRole]string{
-	Admin:      "admin",
-	SuperAdmin: "superadmin",
-	Staff:      "staff",
-	Usr:        "user",
-}
 
 // NOTE: super admin can only create admin and staff, can create agent, train agent
 // NOTE: admin can only create staff, create and train agent
 // NOTE: staff can only handle escalations,
-
-func (r UserRole) String() string {
-	return UserRoleString[r]
-}
 
 type Users struct {
 	ID          string  `json:"id" gorm:"primaryKey;type:varchar(36)"`
 	FirebaseUID string  `json:"firebase_uid" gorm:"uniqueIndex;type:varchar(128);not null"`
 	Name        string  `json:"name" gorm:"type:varchar(255);not null"`
 	Email       string  `json:"email" gorm:"uniqueIndex;type:varchar(255);not null"`
-	Role        string  `json:"role" gorm:"type:varchar(50);not null;default:staff"`
+	Role        string  `json:"role" gorm:"type:varchar(50);not null;default:admin"`
 	Avatar      *string `json:"avatar" gorm:"type:text"`
 	CreatedAt   string  `json:"created_at" gorm:"not null"`
 	UpdatedAt   string  `json:"updated_at" gorm:"not null"`

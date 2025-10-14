@@ -4,8 +4,9 @@ import (
 	"errors"
 
 	"github.com/alpinesboltltd/boltz-ai/internal/entity"
+	appErrors "github.com/alpinesboltltd/boltz-ai/internal/errors"
 	"github.com/alpinesboltltd/boltz-ai/internal/repository"
-	"gorm.io/gorm"
+	"github.com/alpinesboltltd/boltz-ai/internal/utils"
 )
 
 type UserUsecase struct {
@@ -21,10 +22,21 @@ func NewUserUsecase(user_repo repository.UserRepositoryInterface, firebase_servi
 }
 
 func (u *UserUsecase) SignupWithEmail(req entity.SignupRequest) (*entity.Users, error) {
+	// Validate input
+	if err := utils.ValidateEmail(req.Email); err != nil {
+		return nil, err
+	}
+	if err := utils.ValidatePassword(req.Password); err != nil {
+		return nil, err
+	}
+	if err := utils.ValidateRequired(req.Name, "Name"); err != nil {
+		return nil, err
+	}
+
 	// Create user in Firebase
 	firebaseUser, err := u.firebaseService.CreateUser(req.Email, req.Password)
 	if err != nil {
-		return nil, err
+		return nil, appErrors.WrapExternalAPIError(err, "Firebase")
 	}
 
 	// Create user profile in PostgreSQL
@@ -37,18 +49,23 @@ func (u *UserUsecase) SignupWithEmail(req entity.SignupRequest) (*entity.Users, 
 }
 
 func (u *UserUsecase) LoginWithEmail(req entity.LoginRequest) (*entity.Users, error) {
+	// Validate input
+	if err := utils.ValidateEmail(req.Email); err != nil {
+		return nil, err
+	}
+	if err := utils.ValidateRequired(req.Password, "Password"); err != nil {
+		return nil, err
+	}
+
 	// Get Firebase user by email to verify existence
 	_, err := u.firebaseService.GetUserByEmail(req.Email)
 	if err != nil {
-		return nil, errors.New("invalid credentials")
+		return nil, appErrors.NewAuthenticationError("Invalid credentials")
 	}
 
 	// Get user profile from PostgreSQL
 	user, err := u.userRepo.GetUserByEmail(req.Email)
 	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, errors.New("user not found")
-		}
 		return nil, err
 	}
 
@@ -56,18 +73,32 @@ func (u *UserUsecase) LoginWithEmail(req entity.LoginRequest) (*entity.Users, er
 }
 
 func (u *UserUsecase) AuthenticateWithToken(id_token string) (*entity.Users, error) {
+	// Validate input
+	if err := utils.ValidateRequired(id_token, "ID Token"); err != nil {
+		return nil, err
+	}
+
 	// Verify Firebase ID token
 	token, err := u.firebaseService.VerifyIDToken(id_token)
 	if err != nil {
-		return nil, err
+		return nil, appErrors.NewAuthenticationError("Invalid token")
 	}
 
 	// Get user profile from PostgreSQL
 	user, err := u.userRepo.GetUserByFirebaseUID(token.UID)
 	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
+		var appErr *appErrors.AppError
+		if errors.As(err, &appErr) && appErr.Type == appErrors.NotFoundError {
 			// Create user profile if doesn't exist (for social login)
-			return u.userRepo.CreateUser(token.UID, token.Claims["name"].(string), token.Claims["email"].(string))
+			displayName := ""
+			email := ""
+			if name, ok := token.Claims["displayName"].(string); ok {
+				displayName = name
+			}
+			if emailClaim, ok := token.Claims["email"].(string); ok {
+				email = emailClaim
+			}
+			return u.userRepo.CreateUser(token.UID, displayName, email)
 		}
 		return nil, err
 	}
