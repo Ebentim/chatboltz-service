@@ -1,0 +1,70 @@
+# Binaries
+*.exe
+*.dll
+*.so
+*.dylib
+*.test
+
+# Output of build tools
+/build/
+/tmp/
+/bin/
+
+# Dependency directories (remove the comment below if you use Go modules)
+/vendor/
+
+# Go workspace file
+*.code-workspace
+
+# IDE/editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*.bak
+*.tmp
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Test data
+mock-data/
+
+# Migration files (if generated)
+migrations/*.tmp
+
+# Environment files
+.env
+.env.*
+
+# Coverage files
+*.out
+coverage/
+
+# Local config
+local.settings.json
+
+# Ignore compiled Python, Node, or other language artifacts
+*.pyc
+node_modules/
+
+# Ignore by name
+main.exe
+
+# Ignore Go build cache
+**/go.sum
+**/go.mod
+
+# Ignore backup files
+*~
+
+# Ignore JetBrains IDEs
+*.iml
+.idea/
+
+# Ignore notebook checkpoints
+.ipynb_checkpoints/
