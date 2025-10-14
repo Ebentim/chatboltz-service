@@ -11,6 +11,7 @@ import (
 
 	"github.com/alpinesboltltd/boltz-ai/internal/config"
 	"github.com/alpinesboltltd/boltz-ai/internal/handler"
+	"github.com/alpinesboltltd/boltz-ai/internal/middleware"
 	"github.com/alpinesboltltd/boltz-ai/internal/repository"
 	"github.com/alpinesboltltd/boltz-ai/internal/usecase"
 	"github.com/gin-gonic/gin"
@@ -44,7 +45,7 @@ func Run(cfg *config.Config) {
 	agentUsecase := usecase.NewAgentUseCase(agentRepo)
 
 	// Initialize handlers
-	authHandler := handler.NewAuthHandler(userUsecase)
+	authHandler := handler.NewAuthHandler(userUsecase, []byte(cfg.JWT_SECRET))
 	agentHandler := handler.NewAgentHandler(agentUsecase)
 
 	// Setup routes
@@ -75,6 +76,7 @@ func Run(cfg *config.Config) {
 		}
 
 		agent := api.Group("/agent")
+		agent.Use(middleware.AuthMiddleware([]byte(cfg.JWT_SECRET)))
 		{
 			agent.POST("/create", agentHandler.CreateAgent)
 			agent.PATCH("/update/:id", agentHandler.UpdateAgent)

@@ -1,9 +1,11 @@
 package repository
 
 import (
+	"errors"
 	"time"
 
 	"github.com/alpinesboltltd/boltz-ai/internal/entity"
+	appErrors "github.com/alpinesboltltd/boltz-ai/internal/errors"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
@@ -32,14 +34,17 @@ func (r *AgentRepository) CreateAgent(userId, name, description, aiModel string,
 	}
 
 	if err := r.db.Create(agent).Error; err != nil {
-		return nil, err
+		return nil, appErrors.WrapDatabaseError(err, "create agent")
 	}
 
 	return agent, nil
 }
 
 func (r *AgentRepository) UpdateAgentByID(id string, update entity.AgentUpdate) error {
-	return r.db.Model(&entity.Agent{}).Where("id = ?", id).Updates(update).Error
+	if err := r.db.Model(&entity.Agent{}).Where("id = ?", id).Updates(update).Error; err != nil {
+		return appErrors.WrapDatabaseError(err, "update agent by ID")
+	}
+	return nil
 }
 
 func (r *AgentRepository) CreateAgentAppearance(agent_id, primary_color, font_family, chat_icon, welcome_message, position, icon_size, bubble_style string) (*entity.AgentAppearance, error) {
@@ -142,7 +147,10 @@ func (r *AgentRepository) UpdateAgentIntegration(integration *entity.AgentIntegr
 func (r *AgentRepository) GetAgent(id string) (*entity.Agent, error) {
 	var agent entity.Agent
 	if err := r.db.Where("id = ?", id).First(&agent).Error; err != nil {
-		return nil, err
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, appErrors.NewNotFoundError("Agent not found")
+		}
+		return nil, appErrors.WrapDatabaseError(err, "get agent")
 	}
 	return &agent, nil
 }
@@ -151,7 +159,7 @@ func (r *AgentRepository) GetAgent(id string) (*entity.Agent, error) {
 func (r *AgentRepository) GetAgentsByUserId(userId string) (*[]entity.Agent, error) {
 	var agents []entity.Agent
 	if err := r.db.Where("user_id = ?", userId).Find(&agents).Error; err != nil {
-		return nil, err
+		return nil, appErrors.WrapDatabaseError(err, "get agents by user ID")
 	}
 	return &agents, nil
 }
@@ -191,7 +199,7 @@ func (r *AgentRepository) GetAgentIntegrations(agent_id string) (*entity.AgentIn
 
 func (r *AgentRepository) DeleteAgent(agent_id string) error {
 	if err := r.db.Where("id = ?", agent_id).Delete(&entity.Agent{}).Error; err != nil {
-		return err
+		return appErrors.WrapDatabaseError(err, "delete agent")
 	}
 	return nil
 }
@@ -199,8 +207,7 @@ func (r *AgentRepository) DeleteAgent(agent_id string) error {
 func (r *AgentRepository) ListAllAgents() (*[]entity.Agent, error) {
 	var agents []entity.Agent
 	if err := r.db.Find(&agents).Error; err != nil {
-		return nil, err
+		return nil, appErrors.WrapDatabaseError(err, "list all agents")
 	}
 	return &agents, nil
-
 }
