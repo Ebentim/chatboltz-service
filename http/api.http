@@ -1,0 +1,278 @@
+### Variables
+@baseUrl = http://localhost:8080
+@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiYjNiMGI5NTEtZmEzMS00OWQ5LWE4NjItNDViYjQ4YTgzNThiIiwiZW1haWwiOiJlYmVudGltNEBnbWFpbC5jb20iLCJyb2xlIjoic3VwZXJhZG1pbiIsImlzcyI6IkNoYXRib2x0eiIsImV4cCI6MTc2MDg0MjA0MywiaWF0IjoxNzYwNzk4ODQzfQ.cgFapcYWQYbgRPZ-mw5ai01e8vtDy2rN-sRTR9CM5UQ
+@userId = b3b0b951-fa31-49d9-a862-45bb48a8358b
+@agentId = 50938407-0aee-4303-80ec-8aa90bb1bdd9
+@appearanceId = 66f36059-d310-4618-9a31-c3185a43c85b
+@instructionId = sys_inst_001
+@templateId = template_001
+### Auth - Signup with Email
+POST {{baseUrl}}/api/v1/auth/signup
+Content-Type: application/json
+
+{
+  "email": "user@example.com",
+  "password": "password123",
+  "name": "John Doe"
+}
+
+### Auth - Login with Email
+POST {{baseUrl}}/api/v1/auth/login
+Content-Type: application/json
+
+{
+  "email": "ebentim4@gmail.com",
+  "password": "Ifeoluwasimi@25"
+}
+
+### Auth - Verify Token (Returns user details + JWT)
+POST {{baseUrl}}/api/v1/auth/verify
+Content-Type: application/json
+
+{
+  "id_token": "firebase_id_token_here"
+}
+
+# Response:
+# {
+#   "user": {
+#     "id": "user-id",
+#     "email": "user@example.com",
+#     "name": "John Doe",
+#     "role": "admin"
+#   },
+#   "token": "jwt_token_here"
+# }
+
+### Agent - Create Agent
+POST {{baseUrl}}/api/v1/agent/create
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "userId": "{{userId}}",
+  "name": "Customer Support Agent",
+  "description": "AI agent for Academic Support",
+  "ai_model": "gpt-4",
+  "ai_provider": "openai",
+  "agent_type": 0,
+  "credits_per_1k": 10,
+  "status": "active"
+}
+
+### Agent - Create Agent Appearance
+POST {{baseUrl}}/api/v1/agent/create/appearance
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "agent_id": "{{agentId}}",
+  "primary_color": "#007bff",
+  "font_family": "Arial",
+  "chat_icon": "chat-bubble",
+  "welcome_message": "Hello! How can I help you today?",
+  "position": "bottom-right",
+  "icon_size": "medium",
+  "bubble_style": "round"
+}
+
+### Agent - Create Agent Behavior
+POST {{baseUrl}}/api/v1/agent/create/behavior
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "agent_id": "{{agentId}}",
+  "fallback_message": "I'm sorry, I didn't understand that. Can you please rephrase?",
+  "enable_human_handoff": true,
+  "offline_message": "We're currently offline. Please leave a message.",
+  "system_instruction_id": "sys_001",
+  "prompt_template_id": "prompt_001",
+  "temperature": 0.7,
+  "max_tokens": 2048
+}
+
+### Agent - Create Agent Channel
+POST {{baseUrl}}/api/v1/agent/create/channel
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "agent_id": "{{agentId}}",
+  "channel_id": ["web", "mobile", "api"]
+}
+
+### Agent - Create Agent Integration
+POST {{baseUrl}}/api/v1/agent/create/integration
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "agent_id": "{{agentId}}",
+  "integration_id": ["salesforce", "hubspot"],
+  "api_key": "your_api_key_here",
+  "api_secret": "your_api_secret_here",
+  "is_active": true
+}
+
+### Agent - Update Agent
+PATCH {{baseUrl}}/api/v1/agent/update/{{agentId}}
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "name": "Learn Buddy",
+  "ai_provider": "openai",
+  "status": "active"
+}
+
+### Agent - Get Agent by ID
+GET {{baseUrl}}/api/v1/agent/{{agentId}}
+Authorization: Bearer {{token}}
+
+### Agent - Get Agents by User ID
+GET {{baseUrl}}/api/v1/agent/agents/{{userId}}
+Authorization: Bearer {{token}}
+
+### Agent - Get Agent Appearance
+GET {{baseUrl}}/api/v1/agent/{{agentId}}/appearance
+Authorization: Bearer {{token}}
+
+### Agent - Get Agent Behavior
+GET {{baseUrl}}/api/v1/agent/{{agentId}}/behavior
+Authorization: Bearer {{token}}
+
+### Agent - Get Agent Channel
+GET {{baseUrl}}/api/v1/agent/{{agentId}}/channel
+Authorization: Bearer {{token}}
+
+### Agent - Get Agent Stats
+GET {{baseUrl}}/api/v1/agent/{{agentId}}/stats
+Authorization: Bearer {{token}}
+
+### Agent - Get Agent Integration
+GET {{baseUrl}}/api/v1/agent/{{agentId}}/integration
+Authorization: Bearer {{token}}
+
+### Agent - Update Agent Appearance
+PATCH {{baseUrl}}/api/v1/agent/{{agentId}}/appearance
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "primary_color": "#28a745",
+  "welcome_message": "Welcome! How may I assist you?",
+  "position": "bottom-left"
+}
+
+### Agent - Update Agent Behavior
+PATCH {{baseUrl}}/api/v1/agent/{{agentId}}/behavior
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "fallback_message": "I apologize, but I need more information to help you.",
+  "enable_human_handoff": false,
+  "temperature": 0.8,
+  "max_tokens": 1024
+}
+
+### Agent - Update Agent Channel
+PATCH {{baseUrl}}/api/v1/agent/{{agentId}}/channel
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "channel_id": ["web", "mobile", "api", "whatsapp"]
+}
+
+### Agent - Update Agent Integration
+PATCH {{baseUrl}}/api/v1/agent/{{agentId}}/integration
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "integration_id": ["salesforce", "hubspot", "zendesk"],
+  "api_key": "updated_api_key",
+  "is_active": true
+}
+
+### Agent - Delete Agent Appearance
+DELETE {{baseUrl}}/api/v1/agent/{{agentId}}/appearance
+Authorization: Bearer {{token}}
+
+### Agent - Delete Agent Behavior
+DELETE {{baseUrl}}/api/v1/agent/{{agentId}}/behavior
+Authorization: Bearer {{token}}
+
+### Agent - Delete Agent Channel
+DELETE {{baseUrl}}/api/v1/agent/{{agentId}}/channel
+Authorization: Bearer {{token}}
+
+### Agent - Delete Agent Stats
+DELETE {{baseUrl}}/api/v1/agent/{{agentId}}/stats
+Authorization: Bearer {{token}}
+
+### Agent - Delete Agent Integration
+DELETE {{baseUrl}}/api/v1/agent/{{agentId}}/integration
+Authorization: Bearer {{token}}
+
+### Agent - Delete Agent (Super Admin Only)
+DELETE {{baseUrl}}/api/v1/agent/{{agentId}}
+Authorization: Bearer {{token}}
+
+### System - Create System Instruction (Super Admin Only)
+POST {{baseUrl}}/api/v1/system/instructions
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "title": "Customer Support Instructions",
+  "content": "You are a helpful customer support agent. Always be polite and professional.",
+  "template_id": "template_001"
+}
+
+### System - Get System Instruction
+GET {{baseUrl}}/api/v1/system/instructions/{{instructionId}}
+Authorization: Bearer {{token}}
+
+### System - Update System Instruction (Super Admin Only)
+PATCH {{baseUrl}}/api/v1/system/instructions/{{instructionId}}
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "title": "Updated Customer Support Instructions",
+  "content": "You are a helpful and empathetic customer support agent."
+}
+
+### System - Delete System Instruction (Super Admin Only)
+DELETE {{baseUrl}}/api/v1/system/instructions/{{instructionId}}
+Authorization: Bearer {{token}}
+
+### System - List System Instructions
+GET {{baseUrl}}/api/v1/system/instructions
+Authorization: Bearer {{token}}
+
+### System - Create Prompt Template (Super Admin Only)
+POST {{baseUrl}}/api/v1/system/templates
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "title": "Customer Support Template",
+  "content": "Hello! I'm here to help you with {{issue_type}}. How can I assist you today?"
+}
+
+### System - Get Prompt Template
+GET {{baseUrl}}/api/v1/system/templates/{{templateId}}
+Authorization: Bearer {{token}}
+
+### System - List Prompt Templates
+GET {{baseUrl}}/api/v1/system/templates
+Authorization: Bearer {{token}}
+
+### WebSocket - Chat (Note: This is a WebSocket endpoint, use WebSocket client)
+# GET {{baseUrl}}/ws/v1/chat/
+# Upgrade: websocket
+# Connection: Upgrade

@@ -17,4 +17,3 @@ func GenerateSecret() string {
 // func main() {
 // 	GenerateSecret()
 // }
-

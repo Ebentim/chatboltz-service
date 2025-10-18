@@ -11,6 +11,7 @@ require (
 	github.com/gorilla/websocket v1.5.3
 	github.com/joho/godotenv v1.5.1
 	github.com/kelseyhightower/envconfig v1.4.0
+	github.com/lib/pq v1.10.9
 	github.com/livekit/protocol v1.41.0
 	github.com/livekit/server-sdk-go/v2 v2.11.3
 	github.com/openai/openai-go v1.12.0

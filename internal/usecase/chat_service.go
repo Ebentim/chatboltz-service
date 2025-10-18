@@ -5,7 +5,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/alpinesboltltd/boltz-ai/internal/entity"
 	aiprovider "github.com/alpinesboltltd/boltz-ai/internal/provider/ai-provider"
 )
 
@@ -133,12 +132,12 @@ func (s *ChatService) ProcessMultimodalMessage(agentID string, messages []aiprov
 	if err != nil {
 		return "", fmt.Errorf("failed to get agent config: %w", err)
 	}
-
+	// FIXME. agent must support the request type
 	// Check if agent supports required capabilities
-	requiredCaps := s.getRequiredCapabilities(messages)
-	if !s.agentSupportsCapabilities(config.Agent, requiredCaps) {
-		return "", fmt.Errorf("agent does not support required capabilities: %v", requiredCaps)
-	}
+	// requiredCaps := s.getRequiredCapabilities(messages)
+	// if !s.agentSupportsCapabilities(config.Agent, requiredCaps) {
+	// 	return "", fmt.Errorf("agent does not support required capabilities: %v", requiredCaps)
+	// }
 
 	return s.llmManager.ProcessMultimodalMessage(config.Agent, messages, apiKey, ttsKey, sttKey)
 }
@@ -163,18 +162,19 @@ func (s *ChatService) getRequiredCapabilities(messages []aiprovider.MultimodalMe
 	return result
 }
 
-func (s *ChatService) agentSupportsCapabilities(agent entity.Agent, required []string) bool {
-	for _, req := range required {
-		found := false
-		for _, cap := range agent.Capabilities {
-			if cap == req {
-				found = true
-				break
-			}
-		}
-		if !found {
-			return false
-		}
-	}
-	return true
-}
+// FIXME: need to ensure that agent's type is properly mapped to request
+// func (s *ChatService) agentSupportsCapabilities(agent entity.Agent, required []string) bool {
+// 	for _, req := range required {
+// 		found := false
+// 		for _, cap := range agent.AgentType {
+// 			if cap == req {
+// 				found = true
+// 				break
+// 			}
+// 		}
+// 		if !found {
+// 			return false
+// 		}
+// 	}
+// 	return true
+// }

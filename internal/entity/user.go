@@ -4,7 +4,7 @@ type UserRole string
 
 const (
 	Admin      UserRole = "admin"
-	SuperAdmin UserRole = "superadmin" 
+	SuperAdmin UserRole = "superadmin"
 	Staff      UserRole = "staff"
 	Usr        UserRole = "user"
 )
@@ -17,6 +17,7 @@ type Users struct {
 	ID          string  `json:"id" gorm:"primaryKey;type:varchar(36)"`
 	FirebaseUID string  `json:"firebase_uid" gorm:"uniqueIndex;type:varchar(128);not null"`
 	Name        string  `json:"name" gorm:"type:varchar(255);not null"`
+	Agents      []Agent `json:"agents" gorm:"foreignKey:UserId;constraint:OnDelete:CASCADE;"`
 	Email       string  `json:"email" gorm:"uniqueIndex;type:varchar(255);not null"`
 	Role        string  `json:"role" gorm:"type:varchar(50);not null;default:admin"`
 	Avatar      *string `json:"avatar" gorm:"type:text"`

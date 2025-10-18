@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/alpinesboltltd/boltz-ai/internal/config"
+	"github.com/alpinesboltltd/boltz-ai/internal/crypto"
 	"github.com/alpinesboltltd/boltz-ai/internal/handler"
 	"github.com/alpinesboltltd/boltz-ai/internal/middleware"
 	"github.com/alpinesboltltd/boltz-ai/internal/repository"
@@ -18,6 +19,9 @@ import (
 )
 
 func Run(cfg *config.Config) {
+	// initialize Encryption service
+	crypto.NewEncryptionKey([]byte(cfg.GCM_KEY))
+
 	// Initialize database
 	db, err := repository.InitDB(cfg.DATABASE_URL)
 	if err != nil {
@@ -39,14 +43,17 @@ func Run(cfg *config.Config) {
 	// Initialize repositories
 	userRepo := repository.NewUserRepository(db)
 	agentRepo := repository.NewAgentRepository(db)
+	systemRepo := repository.NewSystemRepository(db)
 
 	// Initialize usecases
 	userUsecase := usecase.NewUserUsecase(userRepo, firebaseService)
 	agentUsecase := usecase.NewAgentUseCase(agentRepo)
+	systemUsecase := usecase.NewSystemUsecase(systemRepo)
 
 	// Initialize handlers
 	authHandler := handler.NewAuthHandler(userUsecase, []byte(cfg.JWT_SECRET))
 	agentHandler := handler.NewAgentHandler(agentUsecase)
+	systemHandler := handler.NewSystemHandler(systemUsecase)
 
 	// Setup routes
 	r := gin.Default()
@@ -78,12 +85,64 @@ func Run(cfg *config.Config) {
 		agent := api.Group("/agent")
 		agent.Use(middleware.AuthMiddleware([]byte(cfg.JWT_SECRET)))
 		{
+			// Core agent operations
 			agent.POST("/create", agentHandler.CreateAgent)
-			agent.PATCH("/update/:id", agentHandler.UpdateAgent)
+			agent.PATCH("/update/:agentId", agentHandler.UpdateAgent)
 			agent.GET("/:agentId", agentHandler.GetAgent)
 			agent.GET("/agents/:userId", agentHandler.GetAgentByUser)
+			agent.DELETE("/:agentId", agentHandler.DeleteAgent)
+
+			// Agent appearance
+			agent.POST("/create/appearance", agentHandler.CreateAgentAppearance)
+			agent.GET("/:agentId/appearance", agentHandler.GetAgentAppearance)
+			agent.PATCH("/:agentId/appearance", agentHandler.UpdateAgentAppearance)
+			agent.DELETE("/:agentId/appearance", agentHandler.DeleteAgentAppearance)
+
+			// Agent behavior
+			agent.POST("/create/behavior", agentHandler.CreateAgentBehavior)
+			agent.GET("/:agentId/behavior", agentHandler.GetAgentBehavior)
+			agent.PATCH("/:agentId/behavior", agentHandler.UpdateAgentBehavior)
+			agent.DELETE("/:agentId/behavior", agentHandler.DeleteAgentBehavior)
+
+			// Agent channel
+			agent.POST("/create/channel", agentHandler.CreateAgentChannel)
+			agent.GET("/:agentId/channel", agentHandler.GetAgentChannel)
+			agent.PATCH("/:agentId/channel", agentHandler.UpdateAgentChannel)
+			agent.DELETE("/:agentId/channel", agentHandler.DeleteAgentChannel)
+
+			// Agent stats
+			agent.GET("/:agentId/stats", agentHandler.GetAgentStats)
+			agent.DELETE("/:agentId/stats", agentHandler.DeleteAgentStats)
+
+			// Agent integration
+			agent.POST("/create/integration", agentHandler.CreateAgentIntegration)
+			agent.GET("/:agentId/integration", agentHandler.GetAgentIntegration)
+			agent.PATCH("/:agentId/integration", agentHandler.UpdateAgentIntegration)
+			agent.DELETE("/:agentId/integration", agentHandler.DeleteAgentIntegration)
 		}
 
+		system := api.Group("/system")
+		system.Use(middleware.AuthMiddleware([]byte(cfg.JWT_SECRET)))
+		{
+			// System instructions (SuperAdmin only)
+			system.POST("/instructions", systemHandler.CreateSystemInstruction)
+			system.GET("/instructions/:id", systemHandler.GetSystemInstruction)
+			system.PATCH("/instructions/:id", systemHandler.UpdateSystemInstruction)
+			system.DELETE("/instructions/:id", systemHandler.DeleteSystemInstruction)
+			system.GET("/instructions", systemHandler.ListSystemInstructions)
+
+			// Prompt templates (SuperAdmin only)
+			system.POST("/templates", systemHandler.CreatePromptTemplate)
+			system.GET("/templates/:id", systemHandler.GetPromptTemplate)
+			system.GET("/templates", systemHandler.ListPromptTemplates)
+		}
+	}
+	ws := r.Group("/ws/v1")
+	{
+		chat := ws.Group("/chat")
+		{
+			chat.GET("/", agentHandler.GetAgent)
+		}
 	}
 
 	srv := &http.Server{
