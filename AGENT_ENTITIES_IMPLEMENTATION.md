@@ -222,13 +222,20 @@ Complete API documentation available in `http/api.http` with:
 - **Admin/User**: Read-only access to system instructions and templates
 - **Agent Operations**: Users can only manage their own agents
 
-## Technical Fixes Applied
+## Permanent Technical Fixes Applied
 
 ### PostgreSQL Array Handling
 
 - **Issue**: `ERROR: column "integration_id" is of type text[] but expression is of type record`
-- **Solution**: Created `StringArray` type with proper `pq.Array` implementation
-- **Implementation**: Custom `Value()` and `Scan()` methods for PostgreSQL compatibility
+- **Root Cause**: Existing database columns were created as non-array types, but Go structs expected PostgreSQL arrays
+- **Solution**: 
+  - Created `StringArray` type with proper `pq.Array` implementation
+  - Added `runPreMigrationFixes()` function to convert existing columns to proper array types
+  - Implemented automatic schema detection and conversion
+- **Implementation**: 
+  - Custom `Value()` and `Scan()` methods for PostgreSQL compatibility
+  - Pre-migration fixes handle existing data conversion automatically
+  - Supports both existing string data and proper PostgreSQL array format
 - **Affected Entities**: AgentChannel.ChannelId, AgentIntegration.IntegrationId
 
 ### Agent Preloading
