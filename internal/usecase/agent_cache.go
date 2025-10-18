@@ -66,16 +66,16 @@ func (c *AgentCache) loadAgentConfig(agentID string) (*AgentConfig, error) {
 	}
 
 	var sysInst entity.SystemInstruction
-	if behavior.SystemInstructionId != "" {
-		inst, err := c.repo.GetSystemInstruction(behavior.SystemInstructionId)
+	if behavior.SystemInstructionId != nil && *behavior.SystemInstructionId != "" {
+		inst, err := c.repo.GetSystemInstruction(*behavior.SystemInstructionId)
 		if err == nil {
 			sysInst = *inst
 		}
 	}
 
 	var promptTmpl entity.PromptTemplate
-	if behavior.PromptTemplateId != "" {
-		tmpl, err := c.repo.GetPromptTemplate(behavior.PromptTemplateId)
+	if behavior.PromptTemplateId != nil && *behavior.PromptTemplateId != "" {
+		tmpl, err := c.repo.GetPromptTemplate(*behavior.PromptTemplateId)
 		if err == nil {
 			promptTmpl = *tmpl
 		}
