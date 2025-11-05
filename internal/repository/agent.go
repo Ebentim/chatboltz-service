@@ -179,11 +179,22 @@ func (r *AgentRepository) UpdateAgentIntegration(integration *entity.AgentIntegr
 
 func (r *AgentRepository) GetAgent(id string) (*entity.Agent, error) {
 	var agent entity.Agent
-	if err := r.db.Preload("User").Preload("AgentAppearance").Preload("AgentBehavior").Preload("AgentBehavior.SystemInstruction").Preload("AgentBehavior.PromptTemplate").Preload("AgentChannel").Preload("AgentIntegration").Preload("AgentStats").Preload("TrainingData").Where("id = ?", id).First(&agent).Error; err != nil {
+	if err := r.db.Where("id = ?", id).First(&agent).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, appErrors.NewNotFoundError("Agent not found")
 		}
 		return nil, appErrors.WrapDatabaseError(err, "get agent")
+	}
+	return &agent, nil
+}
+
+func (r *AgentRepository) GetAgentWithDetails(id string) (*entity.Agent, error) {
+	var agent entity.Agent
+	if err := r.db.Preload("AgentAppearance").Preload("AgentBehavior").Preload("AgentBehavior.SystemInstruction").Preload("AgentBehavior.PromptTemplate").Preload("AgentChannel").Preload("AgentIntegration").Preload("AgentStats").Preload("TrainingData").Where("id = ?", id).First(&agent).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, appErrors.NewNotFoundError("Agent not found")
+		}
+		return nil, appErrors.WrapDatabaseError(err, "get agent with details")
 	}
 	return &agent, nil
 }

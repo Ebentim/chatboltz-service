@@ -31,6 +31,7 @@ type AgentRepositoryInterface interface {
 	UpdateAgentStats(stats *entity.AgentStats) error
 	UpdateAgentIntegration(integration *entity.AgentIntegration) error
 	GetAgent(id string) (*entity.Agent, error)
+	GetAgentWithDetails(id string) (*entity.Agent, error)
 	GetAgentsByUserId(userId string) (*[]entity.Agent, error)
 	GetAgentAppearance(agent_id string) (*entity.AgentAppearance, error)
 	GetAgentBehavior(agent_id string) (*entity.AgentBehavior, error)

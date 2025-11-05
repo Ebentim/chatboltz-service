@@ -72,12 +72,12 @@ func (h *AgentHandler) UpdateAgent(c *gin.Context) {
 
 func (h *AgentHandler) GetAgent(c *gin.Context) {
 	agentId := c.Param("agentId")
-	agent, err := h.agentUsecase.GetAgent(agentId)
+	response, err := h.agentUsecase.GetAgent(agentId)
 	if err != nil {
 		appErrors.HandleError(c, err, "GetAgent")
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"agent": agent})
+	c.JSON(http.StatusOK, response)
 }
 
 func (h *AgentHandler) GetAgentByUser(c *gin.Context) {

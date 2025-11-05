@@ -43,16 +43,40 @@ func (u *AgentUsecase) UpdateAgent(id string, update entity.AgentUpdate) (*entit
 	return agent, nil
 }
 
-func (u *AgentUsecase) GetAgent(id string) (*entity.Agent, error) {
+func (u *AgentUsecase) GetAgent(id string) (*entity.AgentDetailResponse, error) {
 	if id == "" {
 		return nil, appErrors.NewValidationError("Agent ID is required")
 	}
 
-	agent, err := u.Agent.GetAgent(id)
+	agent, err := u.Agent.GetAgentWithDetails(id)
 	if err != nil {
 		return nil, err
 	}
-	return agent, nil
+
+	// Convert to response format
+	response := &entity.AgentDetailResponse{
+		Agent: entity.AgentResponse{
+			ID:           agent.ID,
+			UserId:       agent.UserId,
+			Name:         agent.Name,
+			Description:  agent.Description,
+			AgentType:    agent.AgentType,
+			AiModel:      agent.AiModel,
+			AiProvider:   agent.AiProvider,
+			CreditsPer1k: agent.CreditsPer1k,
+			Status:       agent.Status,
+			CreatedAt:    agent.CreatedAt,
+			UpdatedAt:    agent.UpdatedAt,
+		},
+		AgentAppearance:  agent.AgentAppearance,
+		AgentBehavior:    agent.AgentBehavior,
+		AgentChannel:     agent.AgentChannel,
+		AgentIntegration: agent.AgentIntegration,
+		AgentStats:       agent.AgentStats,
+		TrainingData:     agent.TrainingData,
+	}
+
+	return response, nil
 }
 
 func (u *AgentUsecase) GetUserAgents(userId string) (*[]entity.Agent, error) {
