@@ -301,3 +301,17 @@ func (r *AgentRepository) ListAllAgents() (*[]entity.Agent, error) {
 	}
 	return &agents, nil
 }
+
+// Stub implementations to satisfy interface; actual logic should be added elsewhere
+func (r *AgentRepository) CreateTrainingData(agentID, contentType string, content []entity.TrainingTexts, isActive bool) (*entity.TrainingData, error) {
+	return nil, appErrors.NewNotFoundError("not implemented")
+}
+func (r *AgentRepository) GetTrainingDataByAgentID(agentID string) ([]entity.TrainingData, error) {
+	return nil, appErrors.NewNotFoundError("not implemented")
+}
+func (r *AgentRepository) UpdateTrainingData(trainingData *entity.TrainingData) error {
+	return appErrors.NewNotFoundError("not implemented")
+}
+func (r *AgentRepository) DeleteTrainingData(id string) error {
+	return appErrors.NewNotFoundError("not implemented")
+}

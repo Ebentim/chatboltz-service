@@ -13,6 +13,7 @@ import (
 	"github.com/alpinesboltltd/boltz-ai/internal/crypto"
 	"github.com/alpinesboltltd/boltz-ai/internal/handler"
 	"github.com/alpinesboltltd/boltz-ai/internal/middleware"
+	"github.com/alpinesboltltd/boltz-ai/internal/provider/smtp"
 	"github.com/alpinesboltltd/boltz-ai/internal/repository"
 	"github.com/alpinesboltltd/boltz-ai/internal/usecase"
 	"github.com/gin-gonic/gin"
@@ -46,14 +47,17 @@ func Run(cfg *config.Config) {
 	systemRepo := repository.NewSystemRepository(db)
 
 	// Initialize usecases
-	userUsecase := usecase.NewUserUsecase(userRepo, firebaseService)
+	smtpClient := smtp.NewClient(smtp.Config{Host: cfg.SMTP_HOST, Port: cfg.SMTP_PORT, User: cfg.SMTP_USER, Pass: cfg.SMTP_PASS})
+	userUsecase := usecase.NewUserUsecase(userRepo, firebaseService, smtpClient)
 	agentUsecase := usecase.NewAgentUseCase(agentRepo)
 	systemUsecase := usecase.NewSystemUsecase(systemRepo)
+	otpUsecase := usecase.NewOTPUsecase(repository.NewUserToken(db), cfg.OTP_SECRET, 10*time.Minute)
 
 	// Initialize handlers
 	authHandler := handler.NewAuthHandler(userUsecase, []byte(cfg.JWT_SECRET))
 	agentHandler := handler.NewAgentHandler(agentUsecase)
 	systemHandler := handler.NewSystemHandler(systemUsecase)
+	otpHandler := handler.NewOTPHandler(otpUsecase, smtpClient)
 
 	// Setup routes
 	r := gin.Default()
@@ -80,6 +84,10 @@ func Run(cfg *config.Config) {
 			auth.POST("/signup", authHandler.SignupWithEmail)
 			auth.POST("/login", authHandler.LoginWithEmail)
 			auth.POST("/verify", authHandler.AuthenticateWithToken)
+			auth.POST("/otp/enable", authHandler.EnableOTP)
+			auth.POST("/otp/disable", authHandler.DisableOTP)
+			auth.POST("/otp/request", otpHandler.RequestOTP)
+			auth.POST("/otp/verify", otpHandler.VerifyOTP)
 		}
 
 		agent := api.Group("/agent")

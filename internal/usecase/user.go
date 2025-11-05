@@ -2,22 +2,28 @@ package usecase
 
 import (
 	"errors"
+	"time"
 
 	"github.com/alpinesboltltd/boltz-ai/internal/entity"
 	appErrors "github.com/alpinesboltltd/boltz-ai/internal/errors"
+	"github.com/alpinesboltltd/boltz-ai/internal/provider/smtp"
 	"github.com/alpinesboltltd/boltz-ai/internal/repository"
 	"github.com/alpinesboltltd/boltz-ai/internal/utils"
+	"github.com/pquerna/otp"
+	"github.com/pquerna/otp/totp"
 )
 
 type UserUsecase struct {
 	userRepo        repository.UserRepositoryInterface
 	firebaseService *FirebaseService
+	smtpClient      *smtp.Client
 }
 
-func NewUserUsecase(user_repo repository.UserRepositoryInterface, firebase_service *FirebaseService) *UserUsecase {
+func NewUserUsecase(user_repo repository.UserRepositoryInterface, firebase_service *FirebaseService, smtpClient *smtp.Client) *UserUsecase {
 	return &UserUsecase{
 		userRepo:        user_repo,
 		firebaseService: firebase_service,
+		smtpClient:      smtpClient,
 	}
 }
 
@@ -45,6 +51,20 @@ func (u *UserUsecase) SignupWithEmail(req entity.SignupRequest) (*entity.Users, 
 		return nil, err
 	}
 
+	// Generate per-user TOTP secret (disabled by default until explicitly enabled)
+	key, err := totp.Generate(totp.GenerateOpts{Issuer: "ChatBoltz", AccountName: req.Email})
+	if err == nil {
+		secret := key.Secret()
+		user.OTPSecret = &secret
+		// Do not enable yet; OTPEnabled remains false.
+		_ = u.userRepo.UpdateUser(user)
+	}
+
+	// Send welcome email (ignore error)
+	if u.smtpClient != nil {
+		_ = u.smtpClient.Send(req.Email, "Welcome to ChatBoltz", "Thanks for signing up! Secure your account by enabling OTP in settings.")
+	}
+
 	return user, nil
 }
 
@@ -70,6 +90,41 @@ func (u *UserUsecase) LoginWithEmail(req entity.LoginRequest) (*entity.Users, er
 	}
 
 	return user, nil
+}
+
+// EnableOTP sets otp_enabled=true and (re)generates secret if missing, sending notification email.
+func (u *UserUsecase) EnableOTP(email string) (*entity.Users, error) {
+	if err := utils.ValidateEmail(email); err != nil { return nil, err }
+	user, err := u.userRepo.GetUserByEmail(email)
+	if err != nil { return nil, err }
+	if user.OTPSecret == nil || *user.OTPSecret == "" {
+		key, errGen := totp.Generate(totp.GenerateOpts{Issuer: "ChatBoltz", AccountName: email})
+		if errGen == nil { secret := key.Secret(); user.OTPSecret = &secret }
+	}
+	user.OTPEnabled = true
+	now := time.Now()
+	user.OTPLastVerifiedAt = &now // mark when enabling (optional)
+	if err := u.userRepo.UpdateUser(user); err != nil { return nil, err }
+	if u.smtpClient != nil { _ = u.smtpClient.Send(email, "OTP Enabled", "You have enabled OTP. If this wasn't you, disable it immediately.") }
+	return user, nil
+}
+
+// DisableOTP sets otp_enabled=false (keeps secret for possible re-enable) and notifies user.
+func (u *UserUsecase) DisableOTP(email string) (*entity.Users, error) {
+	if err := utils.ValidateEmail(email); err != nil { return nil, err }
+	user, err := u.userRepo.GetUserByEmail(email)
+	if err != nil { return nil, err }
+	user.OTPEnabled = false
+	if err := u.userRepo.UpdateUser(user); err != nil { return nil, err }
+	if u.smtpClient != nil { _ = u.smtpClient.Send(email, "OTP Disabled", "You have disabled OTP. Your account is less protected.") }
+	return user, nil
+}
+
+// ChangePasswordNotification is a hook to send password change email
+func (u *UserUsecase) SendPasswordChangedEmail(email string) {
+	if u.smtpClient != nil {
+		_ = u.smtpClient.Send(email, "Password Changed", "Your password was changed. If this wasn't you, reset immediately.")
+	}
 }
 
 func (u *UserUsecase) AuthenticateWithToken(id_token string) (*entity.Users, error) {

@@ -1,8 +1,9 @@
 ### Variables
-@baseUrl = http://localhost:8080
-@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiYjNiMGI5NTEtZmEzMS00OWQ5LWE4NjItNDViYjQ4YTgzNThiIiwiZW1haWwiOiJlYmVudGltNEBnbWFpbC5jb20iLCJyb2xlIjoic3VwZXJhZG1pbiIsImlzcyI6IkNoYXRib2x0eiIsImV4cCI6MTc2MDg0MjA0MywiaWF0IjoxNzYwNzk4ODQzfQ.cgFapcYWQYbgRPZ-mw5ai01e8vtDy2rN-sRTR9CM5UQ
+# @baseUrl = https://boltz.alpinesbolt.com
+@baseUrl = http//localhost:8000
+@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiYjNiMGI5NTEtZmEzMS00OWQ5LWE4NjItNDViYjQ4YTgzNThiIiwiZW1haWwiOiJlYmVudGltNEBnbWFpbC5jb20iLCJyb2xlIjoic3VwZXJhZG1pbiIsImlzcyI6IkNoYXRib2x0eiIsImV4cCI6MTc2MTIyNjQwNSwiaWF0IjoxNzYxMTgzMjA1fQ.9zW_NqmAi4ch4Nu_sq0KvU22pcay_IVfzWGWLnsaAhc
 @userId = b3b0b951-fa31-49d9-a862-45bb48a8358b
-@agentId = 50938407-0aee-4303-80ec-8aa90bb1bdd9
+@agentId = 9e0c8d37-5520-4a16-903a-49dd0a30fa30
 @appearanceId = 66f36059-d310-4618-9a31-c3185a43c85b
 @instructionId = sys_inst_001
 @templateId = template_001

@@ -28,11 +28,9 @@ func (r *UserRepository) CreateUser(firebaseUID, name, email string) (*entity.Us
 		CreatedAt:   time.Now().UTC().Format(time.RFC3339),
 		UpdatedAt:   time.Now().UTC().Format(time.RFC3339),
 	}
-
 	if err := r.db.Create(user).Error; err != nil {
 		return nil, appErrors.WrapDatabaseError(err, "create user")
 	}
-
 	return user, nil
 }
 
