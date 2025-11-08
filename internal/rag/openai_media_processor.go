@@ -2,226 +2,189 @@ package rag
 
 import (
 	"bytes"
-	"context"
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"io"
-
-	"github.com/openai/openai-go"
-	"github.com/openai/openai-go/option"
+	"mime/multipart"
+	"net/http"
+	"strings"
 )
 
-// OpenAIMediaProcessor implements MediaProcessor using OpenAI services.
-// Provides AI-powered text extraction from images and audio using GPT-4 Vision
-// and Whisper models with high accuracy and multilingual support.
+// OpenAIMediaProcessor implements MediaProcessor using OpenAI APIs
 type OpenAIMediaProcessor struct {
-	// client is the OpenAI API client
-	client *openai.Client
+	apiKey string
+	client *http.Client
 }
 
-// NewOpenAIMediaProcessor creates a new OpenAI-based media processor.
-// Uses GPT-4 Vision for image analysis and Whisper for audio transcription.
-//
-// Required:
-//   - OpenAI API key with access to GPT-4 Vision and Whisper models
-//
-// Parameters:
-//   - apiKey: OpenAI API key
-//
-// Returns:
-//   - *OpenAIMediaProcessor: Configured processor ready for use
-//   - error: Any error that occurred during client initialization
-func NewOpenAIMediaProcessor(apiKey string) (*OpenAIMediaProcessor, error) {
-	client := openai.NewClient(option.WithAPIKey(apiKey))
-	return &OpenAIMediaProcessor{client: client}, nil
+// NewOpenAIMediaProcessor creates a new OpenAI-based media processor
+func NewOpenAIMediaProcessor(apiKey string) *OpenAIMediaProcessor {
+	return &OpenAIMediaProcessor{
+		apiKey: apiKey,
+		client: &http.Client{},
+	}
 }
 
-// ProcessImage analyzes images using GPT-4 Vision to extract text and describe content.
-// Provides both OCR capabilities and intelligent content description for images
-// without readable text.
-//
-// Features:
-//   - OCR for text extraction from images
-//   - Intelligent image description and analysis
-//   - Multilingual text recognition
-//   - Context-aware content understanding
-//   - Handwriting and stylized text recognition
-//
-// Supported formats: JPEG, PNG, GIF, WebP
-//
-// Parameters:
-//   - imageData: Image file data as io.Reader
-//   - mimeType: MIME type of the image (e.g., "image/jpeg", "image/png")
-//
-// Returns:
-//   - string: Extracted text or detailed image description
-//   - error: Any error that occurred during image analysis
+// ProcessImage uses GPT-4 Vision to extract text from images or URLs
 func (o *OpenAIMediaProcessor) ProcessImage(imageData io.Reader, mimeType string) (string, error) {
-	// Read image data
-	data, err := io.ReadAll(imageData)
-	if err != nil {
-		return "", fmt.Errorf("failed to read image data: %w", err)
+	return o.processImageWithURL("", imageData, mimeType)
+}
+
+// ProcessImageURL processes an image from a URL directly
+func (o *OpenAIMediaProcessor) ProcessImageURL(imageURL string) (string, error) {
+	return o.processImageWithURL(imageURL, nil, "")
+}
+
+func (o *OpenAIMediaProcessor) processImageWithURL(imageURL string, imageData io.Reader, mimeType string) (string, error) {
+	var imageURLValue string
+
+	if imageURL != "" {
+		// Use direct URL
+		imageURLValue = imageURL
+	} else {
+		// Convert binary data to base64
+		data, err := io.ReadAll(imageData)
+		if err != nil {
+			return "", fmt.Errorf("failed to read image data: %w", err)
+		}
+		base64Image := base64.StdEncoding.EncodeToString(data)
+		imageURLValue = fmt.Sprintf("data:%s;base64,%s", mimeType, base64Image)
 	}
 
-	// Encode image to base64
-	base64Image := base64.StdEncoding.EncodeToString(data)
-	imageURL := fmt.Sprintf("data:%s;base64,%s", mimeType, base64Image)
-
-	// Create chat completion request with image
-	resp, err := o.client.Chat.Completions.New(context.Background(), openai.ChatCompletionNewParams{
-		Model: openai.F(openai.ChatModelGPT4Vision),
-		Messages: openai.F([]openai.ChatCompletionMessageParamUnion{
-			openai.ChatCompletionUserMessageParam{
-				Role: openai.F(openai.ChatCompletionUserMessageParamRoleUser),
-				Content: openai.F([]openai.ChatCompletionContentPartUnionParam{
-					openai.ChatCompletionContentPartTextParam{
-						Type: openai.F(openai.ChatCompletionContentPartTextTypeText),
-						Text: openai.F("Extract all text from this image. If there's no readable text, provide a detailed description of what you see in the image. Focus on extracting any visible text first, then describe the visual content."),
+	payload := map[string]interface{}{
+		"model": "gpt-4o",
+		"messages": []map[string]interface{}{
+			{
+				"role": "user",
+				"content": []map[string]interface{}{
+					{
+						"type": "text",
+						"text": "Extract all text content from this image. Return only the text, no explanations.",
 					},
-					openai.ChatCompletionContentPartImageParam{
-						Type: openai.F(openai.ChatCompletionContentPartImageTypeImageURL),
-						ImageURL: openai.F(openai.ChatCompletionContentPartImageImageURLParam{
-							URL: openai.F(imageURL),
-						}),
+					{
+						"type": "image_url",
+						"image_url": map[string]string{
+							"url": imageURLValue,
+						},
 					},
-				}),
+				},
 			},
-		}),
-		MaxTokens: openai.Int(1000),
-	})
-
-	if err != nil {
-		return "", fmt.Errorf("failed to analyze image with GPT-4 Vision: %w", err)
+		},
+		"max_tokens": 1000,
 	}
 
-	if len(resp.Choices) == 0 {
+	jsonData, err := json.Marshal(payload)
+	if err != nil {
+		return "", fmt.Errorf("failed to marshal request: %w", err)
+	}
+
+	req, err := http.NewRequest("POST", "https://api.openai.com/v1/chat/completions", bytes.NewBuffer(jsonData))
+	if err != nil {
+		return "", fmt.Errorf("failed to create request: %w", err)
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+o.apiKey)
+
+	resp, err := o.client.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("failed to send request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	var result struct {
+		Choices []struct {
+			Message struct {
+				Content string `json:"content"`
+			} `json:"message"`
+		} `json:"choices"`
+	}
+
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return "", fmt.Errorf("failed to decode response: %w", err)
+	}
+
+	if len(result.Choices) == 0 {
 		return "", fmt.Errorf("no response from GPT-4 Vision")
 	}
 
-	return resp.Choices[0].Message.Content, nil
+	return result.Choices[0].Message.Content, nil
 }
 
-// ProcessAudio transcribes audio files using OpenAI's Whisper model.
-// Provides state-of-the-art speech recognition with support for 99 languages
-// and robust performance across various audio conditions.
-//
-// Features:
-//   - 99 language support with automatic detection
-//   - Robust to background noise and audio quality
-//   - Automatic punctuation and capitalization
-//   - Speaker change detection
-//   - Technical and domain-specific vocabulary recognition
-//
-// Supported formats: MP3, MP4, MPEG, MPGA, M4A, WAV, WEBM
-//
-// Parameters:
-//   - audioData: Audio file data as io.Reader
-//   - mimeType: MIME type of the audio (e.g., "audio/wav", "audio/mp3")
-//
-// Returns:
-//   - string: Transcribed text from the audio
-//   - error: Any error that occurred during transcription
+// ProcessAudio uses Whisper API to transcribe audio
 func (o *OpenAIMediaProcessor) ProcessAudio(audioData io.Reader, mimeType string) (string, error) {
-	// Read audio data
-	data, err := io.ReadAll(audioData)
+	var buf bytes.Buffer
+	writer := multipart.NewWriter(&buf)
+
+	// Add the audio file
+	part, err := writer.CreateFormFile("file", "audio")
 	if err != nil {
-		return "", fmt.Errorf("failed to read audio data: %w", err)
+		return "", fmt.Errorf("failed to create form file: %w", err)
 	}
 
-	// Determine file extension from MIME type
-	var extension string
-	switch mimeType {
-	case "audio/wav":
-		extension = "wav"
-	case "audio/mp3", "audio/mpeg":
-		extension = "mp3"
-	case "audio/mp4":
-		extension = "mp4"
-	case "audio/m4a":
-		extension = "m4a"
-	case "audio/webm":
-		extension = "webm"
-	default:
-		extension = "wav" // Default fallback
+	if _, err := io.Copy(part, audioData); err != nil {
+		return "", fmt.Errorf("failed to copy audio data: %w", err)
 	}
 
-	// Create transcription request
-	resp, err := o.client.Audio.Transcriptions.New(context.Background(), openai.AudioTranscriptionNewParams{
-		File:  openai.FileParam(bytes.NewReader(data), fmt.Sprintf("audio.%s", extension), mimeType),
-		Model: openai.F(openai.AudioModelWhisper1),
-	})
+	// Add model parameter
+	if err := writer.WriteField("model", "whisper-1"); err != nil {
+		return "", fmt.Errorf("failed to write model field: %w", err)
+	}
 
+	writer.Close()
+
+	req, err := http.NewRequest("POST", "https://api.openai.com/v1/audio/transcriptions", &buf)
 	if err != nil {
-		return "", fmt.Errorf("failed to transcribe audio with Whisper: %w", err)
+		return "", fmt.Errorf("failed to create request: %w", err)
 	}
 
-	return resp.Text, nil
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+	req.Header.Set("Authorization", "Bearer "+o.apiKey)
+
+	resp, err := o.client.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("failed to send request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	var result struct {
+		Text string `json:"text"`
+	}
+
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return "", fmt.Errorf("failed to decode response: %w", err)
+	}
+
+	return result.Text, nil
 }
 
-// ProcessVideo extracts audio from video and transcribes using Whisper.
-// Currently supports video files that can be processed directly by Whisper.
-//
-// Features:
-//   - Direct video processing with Whisper (for supported formats)
-//   - Multilingual speech recognition
-//   - Robust audio extraction and transcription
-//
-// Supported formats: MP4, WEBM, MOV (formats supported by Whisper)
-//
-// Parameters:
-//   - videoData: Video file data as io.Reader
-//   - mimeType: MIME type of the video (e.g., "video/mp4", "video/webm")
-//
-// Returns:
-//   - string: Transcribed text from video's audio track
-//   - error: Any error that occurred during processing
+// ProcessVideo extracts audio and transcribes using Whisper
 func (o *OpenAIMediaProcessor) ProcessVideo(videoData io.Reader, mimeType string) (string, error) {
-	// Read video data
-	data, err := io.ReadAll(videoData)
-	if err != nil {
-		return "", fmt.Errorf("failed to read video data: %w", err)
-	}
-
-	// Determine file extension from MIME type
-	var extension string
-	switch mimeType {
-	case "video/mp4":
-		extension = "mp4"
-	case "video/webm":
-		extension = "webm"
-	case "video/quicktime":
-		extension = "mov"
-	default:
-		extension = "mp4" // Default fallback
-	}
-
-	// Use Whisper to transcribe video directly (it can handle video files)
-	resp, err := o.client.Audio.Transcriptions.New(context.Background(), openai.AudioTranscriptionNewParams{
-		File:  openai.FileParam(bytes.NewReader(data), fmt.Sprintf("video.%s", extension), mimeType),
-		Model: openai.F(openai.AudioModelWhisper1),
-	})
-
-	if err != nil {
-		return "", fmt.Errorf("failed to transcribe video with Whisper: %w", err)
-	}
-
-	return resp.Text, nil
+	// Simplified approach: treat video as audio for transcription
+	// In production, use FFmpeg to extract audio track first
+	return o.ProcessAudio(videoData, "audio/mp3")
 }
 
-// ProcessPDF extracts text from PDF documents.
-// This is a placeholder implementation as OpenAI doesn't directly support PDF processing.
-//
-// Parameters:
-//   - pdfData: PDF file data as io.Reader
-//
-// Returns:
-//   - string: Extracted text content from the PDF
-//   - error: Error indicating PDF processing is not implemented
-//
-// Note: For PDF processing with OpenAI, you would need to:
-//  1. Convert PDF pages to images
-//  2. Use GPT-4 Vision to extract text from each page
-//  3. Combine results
+// ProcessMultipleImages processes multiple images sequentially (OpenAI doesn't support batch)
+func (o *OpenAIMediaProcessor) ProcessMultipleImages(imageDataList []io.Reader, mimeTypes []string) (string, error) {
+	var allText []string
+	for i, imageData := range imageDataList {
+		mimeType := ""
+		if i < len(mimeTypes) {
+			mimeType = mimeTypes[i]
+		}
+		text, err := o.ProcessImage(imageData, mimeType)
+		if err != nil {
+			return "", fmt.Errorf("failed to process image %d: %w", i+1, err)
+		}
+		if text != "" {
+			allText = append(allText, text)
+		}
+	}
+	return strings.Join(allText, "\n\n"), nil
+}
+
+// ProcessPDF placeholder - not supported by OpenAI APIs directly
 func (o *OpenAIMediaProcessor) ProcessPDF(pdfData io.Reader) (string, error) {
-	return "", fmt.Errorf("PDF processing not implemented for OpenAI processor - convert PDF to images and use ProcessImage")
+	return "", fmt.Errorf("PDF processing not supported by OpenAI APIs")
 }

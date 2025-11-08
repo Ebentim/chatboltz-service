@@ -32,8 +32,9 @@ func NewRAGRetrieverUseCase(cfg *config.Config, db *gorm.DB) (*RAGRetrieverUseCa
 		return nil, fmt.Errorf("failed to create Cohere client: %w", err)
 	}
 
+	mediaProcessor := rag.NewOpenAIMediaProcessor(cfg.OPENAI_API_KEY)
 	ragRepo := repository.NewRAGRepository(db)
-	ragService := rag.NewRAGService(cohere, ragRepo)
+	ragService := rag.NewRAGService(cohere, ragRepo, mediaProcessor)
 
 	return &RAGRetrieverUseCase{
 		ragService: ragService,

@@ -2,8 +2,9 @@ package config
 
 type Config struct {
 	Port                     string `env:"PORT,default=8080"`
-	OpenAI_API_KEY           string `env:"OPENAI_API_KEY,required"`
+	OPENAI_API_KEY           string `env:"OPENAI_API_KEY,required"`
 	GEMINI_API_KEY           string `env:"GEMINI_API_KEY,required"`
+	GOOGLE_API_KEY           string `env:"GOOGLE_API_KEY,required"` // For Google AI/Vertex AI
 	DATABASE_URL             string `env:"DATABASE_URL,required"`
 	GOOGLE_CLIENT_SECRET     string `env:"GOOGLE_CLIENT_SECRET, required"`
 	GOOGLE_CLIENT_ID         string `env:"GOOGLE_CLIENT_ID,required"`

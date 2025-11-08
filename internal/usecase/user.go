@@ -9,7 +9,6 @@ import (
 	"github.com/alpinesboltltd/boltz-ai/internal/provider/smtp"
 	"github.com/alpinesboltltd/boltz-ai/internal/repository"
 	"github.com/alpinesboltltd/boltz-ai/internal/utils"
-	"github.com/pquerna/otp"
 	"github.com/pquerna/otp/totp"
 )
 
@@ -94,29 +93,48 @@ func (u *UserUsecase) LoginWithEmail(req entity.LoginRequest) (*entity.Users, er
 
 // EnableOTP sets otp_enabled=true and (re)generates secret if missing, sending notification email.
 func (u *UserUsecase) EnableOTP(email string) (*entity.Users, error) {
-	if err := utils.ValidateEmail(email); err != nil { return nil, err }
+	if err := utils.ValidateEmail(email); err != nil {
+		return nil, err
+	}
 	user, err := u.userRepo.GetUserByEmail(email)
-	if err != nil { return nil, err }
+	if err != nil {
+		return nil, err
+	}
 	if user.OTPSecret == nil || *user.OTPSecret == "" {
 		key, errGen := totp.Generate(totp.GenerateOpts{Issuer: "ChatBoltz", AccountName: email})
-		if errGen == nil { secret := key.Secret(); user.OTPSecret = &secret }
+		if errGen == nil {
+			secret := key.Secret()
+			user.OTPSecret = &secret
+		}
 	}
 	user.OTPEnabled = true
 	now := time.Now()
 	user.OTPLastVerifiedAt = &now // mark when enabling (optional)
-	if err := u.userRepo.UpdateUser(user); err != nil { return nil, err }
-	if u.smtpClient != nil { _ = u.smtpClient.Send(email, "OTP Enabled", "You have enabled OTP. If this wasn't you, disable it immediately.") }
+	if err := u.userRepo.UpdateUser(user); err != nil {
+		return nil, err
+	}
+	if u.smtpClient != nil {
+		_ = u.smtpClient.Send(email, "OTP Enabled", "You have enabled OTP. If this wasn't you, disable it immediately.")
+	}
 	return user, nil
 }
 
 // DisableOTP sets otp_enabled=false (keeps secret for possible re-enable) and notifies user.
 func (u *UserUsecase) DisableOTP(email string) (*entity.Users, error) {
-	if err := utils.ValidateEmail(email); err != nil { return nil, err }
+	if err := utils.ValidateEmail(email); err != nil {
+		return nil, err
+	}
 	user, err := u.userRepo.GetUserByEmail(email)
-	if err != nil { return nil, err }
+	if err != nil {
+		return nil, err
+	}
 	user.OTPEnabled = false
-	if err := u.userRepo.UpdateUser(user); err != nil { return nil, err }
-	if u.smtpClient != nil { _ = u.smtpClient.Send(email, "OTP Disabled", "You have disabled OTP. Your account is less protected.") }
+	if err := u.userRepo.UpdateUser(user); err != nil {
+		return nil, err
+	}
+	if u.smtpClient != nil {
+		_ = u.smtpClient.Send(email, "OTP Disabled", "You have disabled OTP. Your account is less protected.")
+	}
 	return user, nil
 }
 

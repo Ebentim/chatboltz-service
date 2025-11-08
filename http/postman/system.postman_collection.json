@@ -1,0 +1,201 @@
+{
+  "info": {
+    "name": "Helix BE - System Module",
+    "description": "System management endpoints for Helix Backend API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "instructionId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "templateId",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "System Instructions",
+      "item": [
+        {
+          "name": "Create System Instruction",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Customer Support Instructions\",\n  \"content\": \"You are a helpful customer support agent. Always be polite and professional.\",\n  \"template_id\": \"template_001\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/system/instructions",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "system", "instructions"]
+            }
+          }
+        },
+        {
+          "name": "Get System Instruction",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/system/instructions/{{instructionId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "system", "instructions", "{{instructionId}}"]
+            }
+          }
+        },
+        {
+          "name": "List System Instructions",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/system/instructions",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "system", "instructions"]
+            }
+          }
+        },
+        {
+          "name": "Update System Instruction",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Updated Customer Support Instructions\",\n  \"content\": \"You are a helpful and empathetic customer support agent.\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/system/instructions/{{instructionId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "system", "instructions", "{{instructionId}}"]
+            }
+          }
+        },
+        {
+          "name": "Delete System Instruction",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/system/instructions/{{instructionId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "system", "instructions", "{{instructionId}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Prompt Templates",
+      "item": [
+        {
+          "name": "Create Prompt Template",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Customer Support Template\",\n  \"content\": \"Hello! I'm here to help you with {{issue_type}}. How can I assist you today?\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/system/templates",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "system", "templates"]
+            }
+          }
+        },
+        {
+          "name": "Get Prompt Template",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/system/templates/{{templateId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "system", "templates", "{{templateId}}"]
+            }
+          }
+        },
+        {
+          "name": "List Prompt Templates",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/system/templates",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "system", "templates"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

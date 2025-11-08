@@ -8,6 +8,7 @@ require (
 	cloud.google.com/go/speech v1.28.1
 	cloud.google.com/go/vision/v2 v2.9.6
 	firebase.google.com/go/v4 v4.18.0
+	github.com/PuerkitoBio/goquery v1.10.3
 	github.com/anthropics/anthropic-sdk-go v1.14.0
 	github.com/cohere-ai/cohere-go/v2 v2.15.3
 	github.com/gin-gonic/gin v1.11.0
@@ -22,11 +23,13 @@ require (
 	github.com/openai/openai-go v1.12.0
 	github.com/pinecone-io/go-pinecone/v4 v4.1.4
 	github.com/pion/webrtc/v4 v4.1.6
+	github.com/pquerna/otp v1.5.0
+	golang.org/x/crypto v0.43.0
 	golang.org/x/oauth2 v0.32.0
 	google.golang.org/api v0.253.0
 	google.golang.org/genai v1.32.0
+	google.golang.org/protobuf v1.36.10
 	gorm.io/driver/postgres v1.6.0
-	gorm.io/driver/sqlite v1.6.0
 	gorm.io/gorm v1.31.0
 )
 
@@ -48,6 +51,7 @@ require (
 	github.com/GoogleCloudPlatform/opentelemetry-operations-go/exporter/metric v0.54.0 // indirect
 	github.com/GoogleCloudPlatform/opentelemetry-operations-go/internal/resourcemapping v0.54.0 // indirect
 	github.com/MicahParks/keyfunc v1.9.0 // indirect
+	github.com/andybalholm/cascadia v1.3.3 // indirect
 	github.com/antlr4-go/antlr/v4 v4.13.1 // indirect
 	github.com/apapsch/go-jsonmerge/v2 v2.0.0 // indirect
 	github.com/aws/aws-sdk-go-v2 v1.39.4 // indirect
@@ -105,7 +109,6 @@ require (
 	github.com/livekit/psrpc v0.7.0 // indirect
 	github.com/magefile/mage v1.15.0 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
-	github.com/mattn/go-sqlite3 v1.14.22 // indirect
 	github.com/moby/sys/user v0.4.0 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
@@ -131,7 +134,6 @@ require (
 	github.com/pion/turn/v4 v4.1.1 // indirect
 	github.com/planetscale/vtprotobuf v0.6.1-0.20240319094008-0393e58bdf10 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
-	github.com/pquerna/otp v1.5.0 // indirect
 	github.com/puzpuzpuz/xsync/v3 v3.5.1 // indirect
 	github.com/quic-go/qpack v0.5.1 // indirect
 	github.com/quic-go/quic-go v0.55.0 // indirect
@@ -163,7 +165,6 @@ require (
 	go.uber.org/zap v1.27.0 // indirect
 	go.uber.org/zap/exp v0.3.0 // indirect
 	golang.org/x/arch v0.22.0 // indirect
-	golang.org/x/crypto v0.43.0 // indirect
 	golang.org/x/exp v0.0.0-20251023183803-a4bb9ffd2546 // indirect
 	golang.org/x/mod v0.29.0 // indirect
 	golang.org/x/net v0.46.0 // indirect
@@ -177,6 +178,5 @@ require (
 	google.golang.org/genproto/googleapis/api v0.0.0-20251022142026-3a174f9686a8 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20251022142026-3a174f9686a8 // indirect
 	google.golang.org/grpc v1.76.0 // indirect
-	google.golang.org/protobuf v1.36.10 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )

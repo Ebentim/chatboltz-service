@@ -77,18 +77,34 @@ func (h *AuthHandler) AuthenticateWithToken(c *gin.Context) {
 
 // EnableOTP endpoint
 func (h *AuthHandler) EnableOTP(c *gin.Context) {
-	var req struct { Email string `json:"email" binding:"required,email"` }
-	if err := c.ShouldBindJSON(&req); err != nil { appErrors.HandleError(c, appErrors.NewValidationError("Invalid request"), "EnableOTP - bind"); return }
+	var req struct {
+		Email string `json:"email" binding:"required,email"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		appErrors.HandleError(c, appErrors.NewValidationError("Invalid request"), "EnableOTP - bind")
+		return
+	}
 	user, err := h.userUsecase.EnableOTP(req.Email)
-	if err != nil { appErrors.HandleError(c, err, "EnableOTP"); return }
+	if err != nil {
+		appErrors.HandleError(c, err, "EnableOTP")
+		return
+	}
 	c.JSON(http.StatusOK, gin.H{"message": "otp enabled", "user": user.ID})
 }
 
 // DisableOTP endpoint
 func (h *AuthHandler) DisableOTP(c *gin.Context) {
-	var req struct { Email string `json:"email" binding:"required,email"` }
-	if err := c.ShouldBindJSON(&req); err != nil { appErrors.HandleError(c, appErrors.NewValidationError("Invalid request"), "DisableOTP - bind"); return }
+	var req struct {
+		Email string `json:"email" binding:"required,email"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		appErrors.HandleError(c, appErrors.NewValidationError("Invalid request"), "DisableOTP - bind")
+		return
+	}
 	user, err := h.userUsecase.DisableOTP(req.Email)
-	if err != nil { appErrors.HandleError(c, err, "DisableOTP"); return }
+	if err != nil {
+		appErrors.HandleError(c, err, "DisableOTP")
+		return
+	}
 	c.JSON(http.StatusOK, gin.H{"message": "otp disabled", "user": user.ID})
 }

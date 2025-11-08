@@ -32,23 +32,26 @@ func WebSocketHandler(c *gin.Context) {
 	}
 
 	defer conn.Close()
-	// ctx, cancel := context.WithCancel(context.Background())
-	_, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
 	client := &usecase.AgentClient{
 		ID: fmt.Sprintf("boltz-agent"),
 	}
 
 	for {
-		MessageType, msg, err := conn.ReadMessage()
-		if err != nil {
-			cancel()
-
-			break
+		select {
+		case <-ctx.Done():
+			return
+		default:
+			MessageType, msg, err := conn.ReadMessage()
+			if err != nil {
+				return
+			}
+			if err := conn.WriteMessage(MessageType, msg); err != nil {
+				return
+			}
+			client.ReadPump()
 		}
-		if err := conn.WriteMessage(MessageType, msg); err != nil {
-			break
-		}
-		client.ReadPump()
-
 	}
 }

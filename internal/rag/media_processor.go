@@ -16,6 +16,14 @@ type MediaProcessor interface {
 	// Returns extracted text and any error that occurred during processing.
 	ProcessImage(imageData io.Reader, mimeType string) (string, error)
 
+	// ProcessImageURL extracts text from images via URL (when supported by processor).
+	// Returns extracted text and any error that occurred during processing.
+	ProcessImageURL(imageURL string) (string, error)
+
+	// ProcessMultipleImages processes multiple images in a single batch request.
+	// Returns combined text from all images and any error that occurred.
+	ProcessMultipleImages(imageDataList []io.Reader, mimeTypes []string) (string, error)
+
 	// ProcessAudio transcribes audio files to text using speech-to-text services.
 	// Supports formats: MP3, WAV, FLAC, M4A, OGG, AAC
 	// Returns transcribed text and any error that occurred during processing.

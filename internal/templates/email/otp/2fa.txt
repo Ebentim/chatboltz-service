@@ -1,0 +1,9 @@
+Two-Factor Authentication Code
+
+Your two-factor authentication code is:
+
+{{.Code}}
+
+This code will expire in 10 minutes.
+
+If you didn't request this code, please ignore this email and ensure your account is secure.

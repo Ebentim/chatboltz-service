@@ -4,12 +4,13 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"net/http"
 	"strings"
 
-	speech "cloud.google.com/go/speech/apiv1p1beta1"
-	"cloud.google.com/go/speech/apiv1p1beta1/speechpb"
+	speech "cloud.google.com/go/speech/apiv1"
+	"cloud.google.com/go/speech/apiv1/speechpb"
+	vision "cloud.google.com/go/vision/v2/apiv1"
 	"cloud.google.com/go/vision/v2/apiv1/visionpb"
-	vision "cloud.google.com/go/vision/v2/apiv1p1beta1"
 )
 
 // GoogleMediaProcessor implements MediaProcessor using Google Cloud services.
@@ -54,24 +55,6 @@ func NewGoogleMediaProcessor() (*GoogleMediaProcessor, error) {
 }
 
 // ProcessImage extracts text from images using Google Cloud Vision API.
-// Performs OCR (Optical Character Recognition) with support for 50+ languages
-// and advanced text detection capabilities including handwriting recognition.
-//
-// Features:
-//   - Multilingual text detection (Latin, Cyrillic, Arabic, CJK scripts)
-//   - Handwritten text recognition
-//   - Text orientation correction
-//   - Confidence scoring for extracted text
-//
-// Supported formats: JPEG, PNG, GIF, BMP, TIFF, WebP
-//
-// Parameters:
-//   - imageData: Image file data as io.Reader
-//   - mimeType: MIME type of the image (e.g., "image/jpeg", "image/png")
-//
-// Returns:
-//   - string: Extracted text content from the image
-//   - error: Any error that occurred during OCR processing
 func (g *GoogleMediaProcessor) ProcessImage(imageData io.Reader, mimeType string) (string, error) {
 	ctx := context.Background()
 
@@ -84,18 +67,79 @@ func (g *GoogleMediaProcessor) ProcessImage(imageData io.Reader, mimeType string
 	// Create image object
 	image := &visionpb.Image{Content: data}
 
-	// Perform text detection
-	annotations, err := g.visionClient.DetectTexts(ctx, image, nil, 10)
+	// Perform text detection using BatchAnnotateImages
+	req := &visionpb.BatchAnnotateImagesRequest{
+		Requests: []*visionpb.AnnotateImageRequest{
+			{
+				Image: image,
+				Features: []*visionpb.Feature{
+					{Type: visionpb.Feature_TEXT_DETECTION},
+				},
+			},
+		},
+	}
+
+	resp, err := g.visionClient.BatchAnnotateImages(ctx, req)
 	if err != nil {
 		return "", fmt.Errorf("failed to detect text in image: %w", err)
 	}
 
-	if len(annotations) == 0 {
+	if len(resp.Responses) == 0 || resp.Responses[0].TextAnnotations == nil || len(resp.Responses[0].TextAnnotations) == 0 {
 		return "", nil // No text found in image
 	}
 
 	// The first annotation contains all detected text
-	return annotations[0].Description, nil
+	return resp.Responses[0].TextAnnotations[0].Description, nil
+}
+
+// ProcessImageURL processes an image from URL (downloads and processes)
+func (g *GoogleMediaProcessor) ProcessImageURL(imageURL string) (string, error) {
+	resp, err := http.Get(imageURL)
+	if err != nil {
+		return "", fmt.Errorf("failed to download image: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("failed to download image: status %d", resp.StatusCode)
+	}
+
+	return g.ProcessImage(resp.Body, resp.Header.Get("Content-Type"))
+}
+
+// ProcessMultipleImages processes multiple images in a single batch request
+func (g *GoogleMediaProcessor) ProcessMultipleImages(imageDataList []io.Reader, mimeTypes []string) (string, error) {
+	ctx := context.Background()
+	var requests []*visionpb.AnnotateImageRequest
+
+	for _, imageData := range imageDataList {
+		data, err := io.ReadAll(imageData)
+		if err != nil {
+			return "", fmt.Errorf("failed to read image data: %w", err)
+		}
+
+		requests = append(requests, &visionpb.AnnotateImageRequest{
+			Image: &visionpb.Image{Content: data},
+			Features: []*visionpb.Feature{
+				{Type: visionpb.Feature_TEXT_DETECTION},
+			},
+		})
+	}
+
+	req := &visionpb.BatchAnnotateImagesRequest{Requests: requests}
+	resp, err := g.visionClient.BatchAnnotateImages(ctx, req)
+	if err != nil {
+		return "", fmt.Errorf("failed to process images: %w", err)
+	}
+
+	var allText []string
+	for _, response := range resp.Responses {
+		if len(response.TextAnnotations) > 0 {
+			allText = append(allText, response.TextAnnotations[0].Description)
+		}
+	}
+
+	return strings.Join(allText, "\n\n"), nil
 }
 
 // ProcessAudio transcribes audio files to text using Google Cloud Speech-to-Text API.
@@ -146,10 +190,9 @@ func (g *GoogleMediaProcessor) ProcessAudio(audioData io.Reader, mimeType string
 	req := &speechpb.RecognizeRequest{
 		Config: &speechpb.RecognitionConfig{
 			Encoding:                   encoding,
-			SampleRateHertz:            16000,  // Standard sample rate
-			LanguageCode:               "auto", // Automatic language detection
+			SampleRateHertz:            16000,   // Standard sample rate
+			LanguageCode:               "en-US", // Default to English
 			EnableAutomaticPunctuation: true,
-			Model:                      "latest_long", // Best model for long audio
 		},
 		Audio: &speechpb.RecognitionAudio{
 			AudioSource: &speechpb.RecognitionAudio_Content{Content: data},

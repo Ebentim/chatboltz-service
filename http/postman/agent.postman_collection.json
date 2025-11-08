@@ -1,0 +1,532 @@
+{
+  "info": {
+    "name": "Helix BE - Agent Module",
+    "description": "Agent management endpoints for Helix Backend API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "userId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "agentId",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Agent Management",
+      "item": [
+        {
+          "name": "Create Agent",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": \"{{userId}}\",\n  \"name\": \"Customer Support Agent\",\n  \"description\": \"AI agent for Academic Support\",\n  \"ai_model\": \"gpt-4\",\n  \"ai_provider\": \"openai\",\n  \"agent_type\": 0,\n  \"credits_per_1k\": 10,\n  \"status\": \"active\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/agent/create",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "agent", "create"]
+            }
+          }
+        },
+        {
+          "name": "Get Agent by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/agent/{{agentId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "agent", "{{agentId}}"]
+            }
+          }
+        },
+        {
+          "name": "Get Agents by User ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/agent/agents/{{userId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "agent", "agents", "{{userId}}"]
+            }
+          }
+        },
+        {
+          "name": "Update Agent",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Learn Buddy\",\n  \"ai_provider\": \"openai\",\n  \"status\": \"active\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/agent/update/{{agentId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "agent", "update", "{{agentId}}"]
+            }
+          }
+        },
+        {
+          "name": "Delete Agent",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/agent/{{agentId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "agent", "{{agentId}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Agent Appearance",
+      "item": [
+        {
+          "name": "Create Agent Appearance",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"agent_id\": \"{{agentId}}\",\n  \"primary_color\": \"#007bff\",\n  \"font_family\": \"Arial\",\n  \"chat_icon\": \"chat-bubble\",\n  \"welcome_message\": \"Hello! How can I help you today?\",\n  \"position\": \"bottom-right\",\n  \"icon_size\": \"medium\",\n  \"bubble_style\": \"round\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/agent/create/appearance",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "agent", "create", "appearance"]
+            }
+          }
+        },
+        {
+          "name": "Get Agent Appearance",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/agent/{{agentId}}/appearance",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "agent", "{{agentId}}", "appearance"]
+            }
+          }
+        },
+        {
+          "name": "Update Agent Appearance",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"primary_color\": \"#28a745\",\n  \"welcome_message\": \"Welcome! How may I assist you?\",\n  \"position\": \"bottom-left\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/agent/{{agentId}}/appearance",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "agent", "{{agentId}}", "appearance"]
+            }
+          }
+        },
+        {
+          "name": "Delete Agent Appearance",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/agent/{{agentId}}/appearance",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "agent", "{{agentId}}", "appearance"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Agent Behavior",
+      "item": [
+        {
+          "name": "Create Agent Behavior",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"agent_id\": \"{{agentId}}\",\n  \"fallback_message\": \"I'm sorry, I didn't understand that. Can you please rephrase?\",\n  \"enable_human_handoff\": true,\n  \"offline_message\": \"We're currently offline. Please leave a message.\",\n  \"system_instruction_id\": \"sys_001\",\n  \"prompt_template_id\": \"prompt_001\",\n  \"temperature\": 0.7,\n  \"max_tokens\": 2048\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/agent/create/behavior",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "agent", "create", "behavior"]
+            }
+          }
+        },
+        {
+          "name": "Get Agent Behavior",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/agent/{{agentId}}/behavior",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "agent", "{{agentId}}", "behavior"]
+            }
+          }
+        },
+        {
+          "name": "Update Agent Behavior",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fallback_message\": \"I apologize, but I need more information to help you.\",\n  \"enable_human_handoff\": false,\n  \"temperature\": 0.8,\n  \"max_tokens\": 1024\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/agent/{{agentId}}/behavior",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "agent", "{{agentId}}", "behavior"]
+            }
+          }
+        },
+        {
+          "name": "Delete Agent Behavior",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/agent/{{agentId}}/behavior",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "agent", "{{agentId}}", "behavior"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Agent Channels",
+      "item": [
+        {
+          "name": "Create Agent Channel",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"agent_id\": \"{{agentId}}\",\n  \"channel_id\": [\"web\", \"mobile\", \"api\"]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/agent/create/channel",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "agent", "create", "channel"]
+            }
+          }
+        },
+        {
+          "name": "Get Agent Channel",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/agent/{{agentId}}/channel",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "agent", "{{agentId}}", "channel"]
+            }
+          }
+        },
+        {
+          "name": "Update Agent Channel",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"channel_id\": [\"web\", \"mobile\", \"api\", \"whatsapp\"]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/agent/{{agentId}}/channel",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "agent", "{{agentId}}", "channel"]
+            }
+          }
+        },
+        {
+          "name": "Delete Agent Channel",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/agent/{{agentId}}/channel",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "agent", "{{agentId}}", "channel"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Agent Integration",
+      "item": [
+        {
+          "name": "Create Agent Integration",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"agent_id\": \"{{agentId}}\",\n  \"integration_id\": [\"salesforce\", \"hubspot\"],\n  \"api_key\": \"your_api_key_here\",\n  \"api_secret\": \"your_api_secret_here\",\n  \"is_active\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/agent/create/integration",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "agent", "create", "integration"]
+            }
+          }
+        },
+        {
+          "name": "Get Agent Integration",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/agent/{{agentId}}/integration",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "agent", "{{agentId}}", "integration"]
+            }
+          }
+        },
+        {
+          "name": "Update Agent Integration",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"integration_id\": [\"salesforce\", \"hubspot\", \"zendesk\"],\n  \"api_key\": \"updated_api_key\",\n  \"is_active\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/agent/{{agentId}}/integration",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "agent", "{{agentId}}", "integration"]
+            }
+          }
+        },
+        {
+          "name": "Delete Agent Integration",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/agent/{{agentId}}/integration",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "agent", "{{agentId}}", "integration"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Agent Stats",
+      "item": [
+        {
+          "name": "Get Agent Stats",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/agent/{{agentId}}/stats",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "agent", "{{agentId}}", "stats"]
+            }
+          }
+        },
+        {
+          "name": "Delete Agent Stats",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/agent/{{agentId}}/stats",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "agent", "{{agentId}}", "stats"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

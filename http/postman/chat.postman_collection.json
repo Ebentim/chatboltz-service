@@ -1,0 +1,61 @@
+{
+  "info": {
+    "name": "Helix BE - Chat Module",
+    "description": "Chat and WebSocket endpoints for Helix Backend API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080",
+      "type": "string"
+    },
+    {
+      "key": "wsUrl",
+      "value": "ws://localhost:8080",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "agentId",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "WebSocket Chat",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Upgrade",
+            "value": "websocket"
+          },
+          {
+            "key": "Connection",
+            "value": "Upgrade"
+          },
+          {
+            "key": "Sec-WebSocket-Key",
+            "value": "dGhlIHNhbXBsZSBub25jZQ=="
+          },
+          {
+            "key": "Sec-WebSocket-Version",
+            "value": "13"
+          }
+        ],
+        "url": {
+          "raw": "{{wsUrl}}/ws/v1/chat/",
+          "host": ["{{wsUrl}}"],
+          "path": ["ws", "v1", "chat", ""]
+        },
+        "description": "WebSocket endpoint for real-time chat. Use a WebSocket client to connect and send messages."
+      }
+    }
+  ]
+}

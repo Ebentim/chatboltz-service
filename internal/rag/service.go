@@ -1,6 +1,7 @@
 package rag
 
 import (
+	"bytes"
 	"fmt"
 	"strings"
 	"time"
@@ -153,6 +154,17 @@ func (r *RAGService) Query(query entity.RAGQuery) (*entity.RAGResponse, error) {
 //   - error: Any error that occurred during deletion
 func (r *RAGService) DeleteAgentDocuments(agentID string) error {
 	return r.repo.DeleteChunksByAgentID(agentID)
+}
+
+// ProcessMediaFile processes media files (images, audio, video) using MediaProcessor
+func (r *RAGService) ProcessMediaFile(agentID, title string, docType entity.DocumentType, fileData []byte, mimeType string, sourceURL *string) error {
+	reader := bytes.NewReader(fileData)
+	content, err := r.processor.ProcessMediaToText(reader, docType, mimeType)
+	if err != nil {
+		return fmt.Errorf("failed to process media file: %w", err)
+	}
+
+	return r.ProcessDocument(agentID, title, docType, content, sourceURL)
 }
 
 // GetAgentDocuments retrieves all training documents for an agent.

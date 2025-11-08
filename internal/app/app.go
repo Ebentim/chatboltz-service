@@ -15,6 +15,7 @@ import (
 	"github.com/alpinesboltltd/boltz-ai/internal/middleware"
 	"github.com/alpinesboltltd/boltz-ai/internal/provider/smtp"
 	"github.com/alpinesboltltd/boltz-ai/internal/repository"
+	"github.com/alpinesboltltd/boltz-ai/internal/scraper"
 	"github.com/alpinesboltltd/boltz-ai/internal/usecase"
 	"github.com/gin-gonic/gin"
 )
@@ -47,17 +48,31 @@ func Run(cfg *config.Config) {
 	systemRepo := repository.NewSystemRepository(db)
 
 	// Initialize usecases
-	smtpClient := smtp.NewClient(smtp.Config{Host: cfg.SMTP_HOST, Port: cfg.SMTP_PORT, User: cfg.SMTP_USER, Pass: cfg.SMTP_PASS})
+	smtpConfig := smtp.Config{Host: cfg.SMTP_HOST, Port: cfg.SMTP_PORT, User: cfg.SMTP_USER, Pass: cfg.SMTP_PASS}
+	smtpClient := smtp.NewClient(smtpConfig)
+	emailService, err := smtp.NewEmailService(smtpConfig)
+	if err != nil {
+		log.Fatal("Failed to initialize email service:", err)
+	}
 	userUsecase := usecase.NewUserUsecase(userRepo, firebaseService, smtpClient)
 	agentUsecase := usecase.NewAgentUseCase(agentRepo)
 	systemUsecase := usecase.NewSystemUsecase(systemRepo)
-	otpUsecase := usecase.NewOTPUsecase(repository.NewUserToken(db), cfg.OTP_SECRET, 10*time.Minute)
+	otpUsecase := usecase.NewOTPUsecase(repository.NewUserToken(db), userRepo, 10*time.Minute)
+	trainingUsecase, err := usecase.NewTrainingUseCase(cfg.COHERE_API_KEY, cfg.OPENAI_API_KEY, cfg.GOOGLE_API_KEY, db, agentRepo)
+	if err != nil {
+		log.Fatal("Failed to initialize training usecase:", err)
+	}
 
 	// Initialize handlers
 	authHandler := handler.NewAuthHandler(userUsecase, []byte(cfg.JWT_SECRET))
 	agentHandler := handler.NewAgentHandler(agentUsecase)
 	systemHandler := handler.NewSystemHandler(systemUsecase)
-	otpHandler := handler.NewOTPHandler(otpUsecase, smtpClient)
+	otpHandler := handler.NewOTPHandler(otpUsecase, emailService)
+	trainingHandler := handler.NewTrainingHandler(trainingUsecase)
+
+	// Initialize scraper service + handler
+	scraperService := scraper.NewService(nil)
+	scraperHandler := handler.NewScraperHandler(scraperService)
 
 	// Setup routes
 	r := gin.Default()
@@ -77,17 +92,40 @@ func Run(cfg *config.Config) {
 		c.Next()
 	})
 
+		r.GET("/health", func(c *gin.Context){
+		c.JSON(200, gin.H{
+			"status":"ok",
+		})
+	})
+
 	api := r.Group("/api/v1")
+	
 	{
 		auth := api.Group("/auth")
 		{
 			auth.POST("/signup", authHandler.SignupWithEmail)
 			auth.POST("/login", authHandler.LoginWithEmail)
 			auth.POST("/verify", authHandler.AuthenticateWithToken)
-			auth.POST("/otp/enable", authHandler.EnableOTP)
-			auth.POST("/otp/disable", authHandler.DisableOTP)
-			auth.POST("/otp/request", otpHandler.RequestOTP)
-			auth.POST("/otp/verify", otpHandler.VerifyOTP)
+		}
+
+		// OTP routes
+		otp := api.Group("/otp")
+		{
+			// Public routes
+			otp.POST("/request", otpHandler.RequestOTP)
+			otp.POST("/verify", otpHandler.VerifyOTP)
+			otp.POST("/password-reset/complete", otpHandler.CompletePasswordReset)
+			otp.POST("/login/complete", otpHandler.CompleteOTPLogin)
+
+			// Protected routes
+			protected := otp.Group("/")
+			protected.Use(middleware.AuthMiddleware([]byte(cfg.JWT_SECRET)))
+			{
+				protected.POST("/enable", authHandler.EnableOTP)
+				protected.POST("/disable", authHandler.DisableOTP)
+				protected.POST("/2fa/enable", otpHandler.Enable2FA)
+				protected.POST("/2fa/disable", otpHandler.Disable2FA)
+			}
 		}
 
 		agent := api.Group("/agent")
@@ -127,7 +165,20 @@ func Run(cfg *config.Config) {
 			agent.GET("/:agentId/integration", agentHandler.GetAgentIntegration)
 			agent.PATCH("/:agentId/integration", agentHandler.UpdateAgentIntegration)
 			agent.DELETE("/:agentId/integration", agentHandler.DeleteAgentIntegration)
+
+			// Agent training
+			agent.POST("/:agentId/train/text", trainingHandler.TrainWithText)
+			agent.POST("/:agentId/train/file", trainingHandler.TrainWithFile)
+			agent.POST("/:agentId/train/url", trainingHandler.TrainWithURL)
+			agent.GET("/:agentId/training/documents", trainingHandler.GetTrainingDocuments)
+			agent.GET("/:agentId/training/stats", trainingHandler.GetTrainingStats)
+			agent.POST("/:agentId/training/query", trainingHandler.QueryKnowledgeBase)
+			agent.DELETE("/:agentId/training", trainingHandler.DeleteTrainingData)
+			agent.POST("/:agentId/training/migrate", trainingHandler.MigrateLegacyTraining)
 		}
+
+		// Scraper endpoint (public). Accepts JSON {url, trace, exclude, max_pages}
+		api.POST("/scrape", scraperHandler.Scrape)
 
 		system := api.Group("/system")
 		system.Use(middleware.AuthMiddleware([]byte(cfg.JWT_SECRET)))
