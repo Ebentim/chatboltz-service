@@ -12,6 +12,7 @@ type Config struct {
 	GCM_KEY                  string `env:"GCM_KEY,required"`
 	JWT_SECRET               string `env:"JWT_SECRET,required"`
 	COHERE_API_KEY           string `env:"COHERE_API_KEY,required"`
+	GROQ_API_KEY             string `env:"GROQ_API_KEY,required"`
 	PINECONE_API_KEY         string `env:"PINECONE_API_KEY"`
 	PINECONE_INDEX_NAME      string `env:"PINECONE_INDEX_NAME,default=agent-knowledge"`
 	VECTOR_DB_TYPE           string `env:"VECTOR_DB_TYPE,default=pgvector"`

@@ -34,7 +34,16 @@ func NewRAGRetrieverUseCase(cfg *config.Config, db *gorm.DB) (*RAGRetrieverUseCa
 
 	mediaProcessor := rag.NewOpenAIMediaProcessor(cfg.OPENAI_API_KEY)
 	ragRepo := repository.NewRAGRepository(db)
-	ragService := rag.NewRAGService(cohere, ragRepo, mediaProcessor)
+
+	var vectorDB rag.VectorDB
+	if cfg.VECTOR_DB_TYPE == "pinecone" && cfg.PINECONE_API_KEY != "" {
+		vectorDB, err = rag.NewPineconeDB(cfg.PINECONE_API_KEY, cfg.PINECONE_INDEX_NAME)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create Pinecone client: %w", err)
+		}
+	}
+
+	ragService := rag.NewRAGService(cohere, ragRepo, mediaProcessor, vectorDB, cfg.VECTOR_DB_TYPE)
 
 	return &RAGRetrieverUseCase{
 		ragService: ragService,

@@ -45,7 +45,7 @@ func (h *AgentHandler) CreateAgent(c *gin.Context) {
 		req.UserId = userID
 	}
 
-	agent, err := h.agentUsecase.CreateNewAgent(req.UserId, req.Name, req.Description, req.AiModel, req.AiProvider, req.AgentType, req.CreditsPer1k, req.Status)
+	agent, err := h.agentUsecase.CreateNewAgent(req.UserId, req.Name, req.Description, req.AiModelId, req.AgentType, req.Status)
 	if err != nil {
 		appErrors.HandleError(c, err, "CreateAgent")
 		return
@@ -103,17 +103,16 @@ func (h *AgentHandler) GetAgentByUser(c *gin.Context) {
 	var agentResponses []entity.AgentResponse
 	for _, agent := range *agents {
 		agentResponses = append(agentResponses, entity.AgentResponse{
-			ID:           agent.ID,
-			UserId:       agent.UserId,
-			Name:         agent.Name,
-			Description:  agent.Description,
-			AgentType:    agent.AgentType,
-			AiModel:      agent.AiModel,
-			AiProvider:   agent.AiProvider,
-			CreditsPer1k: agent.CreditsPer1k,
-			Status:       agent.Status,
-			CreatedAt:    agent.CreatedAt,
-			UpdatedAt:    agent.UpdatedAt,
+			ID:          agent.ID,
+			UserId:      agent.UserId,
+			Name:        agent.Name,
+			Description: agent.Description,
+			AgentType:   agent.AgentType,
+			AiModelId:   agent.AiModelId,
+			AiModel:     agent.AiModel,
+			Status:      agent.Status,
+			CreatedAt:   agent.CreatedAt,
+			UpdatedAt:   agent.UpdatedAt,
 		})
 	}
 

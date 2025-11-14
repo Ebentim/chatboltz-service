@@ -17,7 +17,7 @@ type UserRepositoryInterface interface {
 }
 
 type AgentRepositoryInterface interface {
-	CreateAgent(userId, name, description, aiModel, aiProvider string, agentType entity.AgentType, credit_per_1k int, status entity.AgentStatus) (*entity.Agent, error)
+	CreateAgent(userId, name, description, aiModelId string, agentType entity.AgentType, status entity.AgentStatus) (*entity.Agent, error)
 	CreateAgentAppearance(agent_id, primary_color, font_family, chat_icon, welcome_message, position, icon_size, bubble_style string) (*entity.AgentAppearance, error)
 	CreateAgentBehavior(agent_id, fallback_message, Offline_message, system_instruction_id, prompt_template_id string, enable_human_handoff bool, temperature float64, max_tokens int) (*entity.AgentBehavior, error)
 	CreateAgentChannel(agent_id string, channel_id []string) (*entity.AgentChannel, error)
@@ -128,9 +128,34 @@ type RAGRepositoryInterface interface {
 	// Returns:
 	//   - error: Any error that occurred during deletion
 	DeleteChunksByAgentID(agentID string) error
+
+	// StoreChunksMetadataOnly stores chunks without embeddings (for Pinecone mode).
+	// Parameters:
+	//   - chunks: Array of document chunks to store
+	// Returns:
+	//   - error: Any error that occurred during storage
+	StoreChunksMetadataOnly(chunks []entity.DocumentChunk) error
+
+	// GetChunksByIDs retrieves chunks by their IDs (for Pinecone search results).
+	// Parameters:
+	//   - chunkIDs: Array of chunk IDs to retrieve
+	// Returns:
+	//   - []entity.DocumentChunk: Array of chunks
+	//   - error: Any error that occurred during retrieval
+	GetChunksByIDs(chunkIDs []string) ([]entity.DocumentChunk, error)
 }
 
 type TokenRepositoryInterface interface {
 	CreateToken(email, purpose, token string, expiresAt time.Time) error
 	GetToken(email, purpose string) (*entity.Token, error)
+}
+
+type AiModelRepositoryInterface interface {
+	CreateAiModel(name, provider string, creditsPer1k int, supportsText, supportsVision, supportsVoice, isReasoning bool) (*entity.AiModel, error)
+	GetAiModel(id string) (*entity.AiModel, error)
+	GetAiModelByName(name string) (*entity.AiModel, error)
+	ListAiModels() (*[]entity.AiModel, error)
+	ListAiModelsByProvider(provider string) (*[]entity.AiModel, error)
+	UpdateAiModel(model *entity.AiModel) error
+	DeleteAiModel(id string) error
 }

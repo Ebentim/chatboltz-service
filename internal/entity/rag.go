@@ -50,9 +50,9 @@ type TrainingDocument struct {
 	// UpdatedAt timestamp when the document record was last modified
 	UpdatedAt time.Time `json:"updated_at" gorm:"not null"`
 	// Agent is the associated agent (loaded via foreign key)
-	Agent *Agent `json:"agent,omitempty" gorm:"foreignKey:AgentID;constraint:OnDelete:CASCADE;"`
+	Agent *Agent `json:"agent,omitempty" gorm:"foreignKey:AgentID;references:ID;constraint:OnDelete:CASCADE,-:save,-:update"`
 	// Chunks are the processed text chunks from this document (loaded via foreign key)
-	Chunks []DocumentChunk `json:"chunks,omitempty" gorm:"foreignKey:DocumentID;constraint:OnDelete:CASCADE;"`
+	Chunks []DocumentChunk `json:"chunks,omitempty" gorm:"foreignKey:DocumentID;references:ID;constraint:OnDelete:CASCADE,-:save,-:update"`
 }
 
 // DocumentChunk represents a processed piece of text from a training document.
@@ -77,9 +77,9 @@ type DocumentChunk struct {
 	// UpdatedAt timestamp when the chunk was last modified
 	UpdatedAt time.Time `json:"updated_at" gorm:"not null"`
 	// Document is the parent training document (loaded via foreign key)
-	Document *TrainingDocument `json:"document,omitempty" gorm:"foreignKey:DocumentID;constraint:OnDelete:CASCADE;"`
+	Document *TrainingDocument `json:"document,omitempty" gorm:"foreignKey:DocumentID;references:ID;constraint:OnDelete:CASCADE,-:save,-:update"`
 	// Agent is the associated agent (loaded via foreign key)
-	Agent *Agent `json:"agent,omitempty" gorm:"foreignKey:AgentID;constraint:OnDelete:CASCADE;"`
+	Agent *Agent `json:"agent,omitempty" gorm:"foreignKey:AgentID;references:ID;constraint:OnDelete:CASCADE,-:save,-:update"`
 }
 
 // TableName returns the database table name for TrainingDocument

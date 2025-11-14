@@ -58,7 +58,7 @@ func (s *ChatService) ProcessMessage(agentID, userMessage, apiKey string) (strin
 		Content: userMessage,
 	})
 
-	llmConfig := s.llmManager.BuildConfig(config.Behavior, config.Agent.AiModel)
+	llmConfig := s.llmManager.BuildConfig(config.Behavior, config.Agent.AiModel.Name)
 	result, err := provider.CompleteConversation(conversation, llmConfig)
 	if err != nil {
 		return "", err
@@ -99,7 +99,7 @@ func (s *ChatService) ProcessMessageStream(agentID, userMessage, apiKey string, 
 		Content: userMessage,
 	})
 
-	llmConfig := s.llmManager.BuildConfig(config.Behavior, config.Agent.AiModel)
+	llmConfig := s.llmManager.BuildConfig(config.Behavior, config.Agent.AiModel.Name)
 	return provider.CompleteConversationStream(conversation, llmConfig, callback)
 }
 
@@ -122,7 +122,7 @@ func (s *ChatService) ProcessConversation(agentID string, messages []aiprovider.
 	}
 
 	conversation := aiprovider.Conversation{Messages: messages}
-	llmConfig := s.llmManager.BuildConfig(config.Behavior, config.Agent.AiModel)
+	llmConfig := s.llmManager.BuildConfig(config.Behavior, config.Agent.AiModel.Name)
 	return provider.CompleteConversation(conversation, llmConfig)
 }
 

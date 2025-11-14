@@ -39,7 +39,7 @@ type TrainingUseCase struct {
 //
 // Returns:
 //   - *TrainingUseCase: Configured training use case
-func NewTrainingUseCase(cohereKey, openaiKey, googleKey string, db *gorm.DB, agentRepo repository.AgentRepositoryInterface) (*TrainingUseCase, error) {
+func NewTrainingUseCase(cohereKey, openaiKey, googleKey, pineconeKey, pineconeIndex, vectorDBType string, db *gorm.DB, agentRepo repository.AgentRepositoryInterface) (*TrainingUseCase, error) {
 	cohere, err := rag.NewCohereClient(cohereKey)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create Cohere client: %w", err)
@@ -49,7 +49,17 @@ func NewTrainingUseCase(cohereKey, openaiKey, googleKey string, db *gorm.DB, age
 	mediaProcessor := rag.NewMediaProcessorFactory(openaiKey, googleKey, cohereKey)
 
 	ragRepo := repository.NewRAGRepository(db)
-	ragService := rag.NewRAGService(cohere, ragRepo, mediaProcessor)
+
+	// Initialize vector DB based on type
+	var vectorDB rag.VectorDB
+	if vectorDBType == "pinecone" && pineconeKey != "" {
+		vectorDB, err = rag.NewPineconeDB(pineconeKey, pineconeIndex)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create Pinecone client: %w", err)
+		}
+	}
+
+	ragService := rag.NewRAGService(cohere, ragRepo, mediaProcessor, vectorDB, vectorDBType)
 
 	return &TrainingUseCase{
 		ragService:     ragService,

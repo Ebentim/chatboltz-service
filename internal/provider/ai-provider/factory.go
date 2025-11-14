@@ -47,9 +47,13 @@ func (f *ProviderFactory) CreateProvider(config entity.ProviderConfig) (LLMProvi
 
 // GetProviderFromAgent creates a provider based on agent configuration
 func (f *ProviderFactory) GetProviderFromAgent(agent entity.Agent, apiKey string) (LLMProvider, error) {
+	if agent.AiModel == nil {
+		return nil, fmt.Errorf("agent AI model not loaded")
+	}
+
 	var provider entity.LLMProvider
 
-	switch agent.AiProvider {
+	switch agent.AiModel.Provider {
 	case "openai":
 		provider = entity.OpenAI
 	case "anthropic":
@@ -61,10 +65,15 @@ func (f *ProviderFactory) GetProviderFromAgent(agent entity.Agent, apiKey string
 	case "groq":
 		provider = entity.Groq
 	default:
-		return nil, fmt.Errorf("unknown provider: %s", agent.AiProvider)
+		return nil, fmt.Errorf("unknown provider: %s", agent.AiModel.Provider)
 	}
 
-	capabilities := entity.DefaultModelCapabilities.GetCapabilities(agent.AiModel)
+	capabilities := entity.ModelCapabilities{
+		Text:   agent.AiModel.SupportsText,
+		Voice:  agent.AiModel.SupportsVoice,
+		Vision: agent.AiModel.SupportsVision,
+	}
+
 	return f.CreateProvider(entity.ProviderConfig{
 		Provider:     provider,
 		APIKey:       apiKey,

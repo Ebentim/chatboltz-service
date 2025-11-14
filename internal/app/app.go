@@ -46,6 +46,7 @@ func Run(cfg *config.Config) {
 	userRepo := repository.NewUserRepository(db)
 	agentRepo := repository.NewAgentRepository(db)
 	systemRepo := repository.NewSystemRepository(db)
+	aiModelRepo := repository.NewAiModelRepository(db)
 
 	// Initialize usecases
 	smtpConfig := smtp.Config{Host: cfg.SMTP_HOST, Port: cfg.SMTP_PORT, User: cfg.SMTP_USER, Pass: cfg.SMTP_PASS}
@@ -57,8 +58,9 @@ func Run(cfg *config.Config) {
 	userUsecase := usecase.NewUserUsecase(userRepo, firebaseService, smtpClient)
 	agentUsecase := usecase.NewAgentUseCase(agentRepo)
 	systemUsecase := usecase.NewSystemUsecase(systemRepo)
+	aiModelUsecase := usecase.NewAiModelUseCase(aiModelRepo)
 	otpUsecase := usecase.NewOTPUsecase(repository.NewUserToken(db), userRepo, 10*time.Minute)
-	trainingUsecase, err := usecase.NewTrainingUseCase(cfg.COHERE_API_KEY, cfg.OPENAI_API_KEY, cfg.GOOGLE_API_KEY, db, agentRepo)
+	trainingUsecase, err := usecase.NewTrainingUseCase(cfg.COHERE_API_KEY, cfg.OPENAI_API_KEY, cfg.GOOGLE_API_KEY, cfg.PINECONE_API_KEY, cfg.PINECONE_INDEX_NAME, cfg.VECTOR_DB_TYPE, db, agentRepo)
 	if err != nil {
 		log.Fatal("Failed to initialize training usecase:", err)
 	}
@@ -67,6 +69,7 @@ func Run(cfg *config.Config) {
 	authHandler := handler.NewAuthHandler(userUsecase, []byte(cfg.JWT_SECRET))
 	agentHandler := handler.NewAgentHandler(agentUsecase)
 	systemHandler := handler.NewSystemHandler(systemUsecase)
+	aiModelHandler := handler.NewAiModelHandler(aiModelUsecase)
 	otpHandler := handler.NewOTPHandler(otpUsecase, emailService)
 	trainingHandler := handler.NewTrainingHandler(trainingUsecase)
 
@@ -92,14 +95,14 @@ func Run(cfg *config.Config) {
 		c.Next()
 	})
 
-		r.GET("/health", func(c *gin.Context){
+	r.GET("/health", func(c *gin.Context) {
 		c.JSON(200, gin.H{
-			"status":"ok",
+			"status": "ok",
 		})
 	})
 
 	api := r.Group("/api/v1")
-	
+
 	{
 		auth := api.Group("/auth")
 		{
@@ -194,6 +197,16 @@ func Run(cfg *config.Config) {
 			system.POST("/templates", systemHandler.CreatePromptTemplate)
 			system.GET("/templates/:id", systemHandler.GetPromptTemplate)
 			system.GET("/templates", systemHandler.ListPromptTemplates)
+		}
+
+		aiModels := api.Group("/ai-models")
+		aiModels.Use(middleware.AuthMiddleware([]byte(cfg.JWT_SECRET)))
+		{
+			aiModels.POST("", aiModelHandler.CreateAiModel)
+			aiModels.GET("", aiModelHandler.ListAiModels)
+			aiModels.GET("/:modelId", aiModelHandler.GetAiModel)
+			aiModels.PUT("/:modelId", aiModelHandler.UpdateAiModel)
+			aiModels.DELETE("/:modelId", aiModelHandler.DeleteAiModel)
 		}
 	}
 	ws := r.Group("/ws/v1")

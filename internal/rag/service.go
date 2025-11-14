@@ -18,6 +18,10 @@ type RAGService struct {
 	processor *ContentProcessor
 	// repo provides data access for training documents and chunks
 	repo repository.RAGRepositoryInterface
+	// vectorDB handles vector storage (Pinecone or pgvector)
+	vectorDB VectorDB
+	// vectorDBType determines which vector DB is used
+	vectorDBType string
 }
 
 // NewRAGService creates a new RAG service with the provided dependencies.
@@ -25,13 +29,17 @@ type RAGService struct {
 // Parameters:
 //   - cohere: Configured Cohere client for embeddings
 //   - repo: Repository interface for data persistence
+//   - vectorDB: Vector database implementation (optional, uses repo if nil)
+//   - vectorDBType: Type of vector DB ("pgvector" or "pinecone")
 //
 // Returns:
 //   - *RAGService: Configured RAG service ready for use
-func NewRAGService(cohere *CohereClient, repo repository.RAGRepositoryInterface, mediaProcessor MediaProcessor) *RAGService {
+func NewRAGService(cohere *CohereClient, repo repository.RAGRepositoryInterface, mediaProcessor MediaProcessor, vectorDB VectorDB, vectorDBType string) *RAGService {
 	return &RAGService{
-		processor: NewContentProcessor(cohere, mediaProcessor),
-		repo:      repo,
+		processor:    NewContentProcessor(cohere, mediaProcessor),
+		repo:         repo,
+		vectorDB:     vectorDB,
+		vectorDBType: vectorDBType,
 	}
 }
 
@@ -85,9 +93,23 @@ func (r *RAGService) ProcessDocument(agentID, title string, docType entity.Docum
 		chunks[i].UpdatedAt = time.Now()
 	}
 
-	// Store chunks
-	if err := r.repo.StoreChunks(chunks); err != nil {
-		return fmt.Errorf("failed to store chunks: %w", err)
+	// Store chunks based on vector DB type
+	if r.vectorDBType == "pinecone" && r.vectorDB != nil {
+		// Store metadata in PostgreSQL
+		if err := r.repo.StoreChunksMetadataOnly(chunks); err != nil {
+			return fmt.Errorf("failed to store chunks metadata: %w", err)
+		}
+		// Store vectors in Pinecone
+		for _, chunk := range chunks {
+			if err := r.vectorDB.Store(&chunk); err != nil {
+				return fmt.Errorf("failed to store chunk in Pinecone: %w", err)
+			}
+		}
+	} else {
+		// Store everything in PostgreSQL (pgvector)
+		if err := r.repo.StoreChunks(chunks); err != nil {
+			return fmt.Errorf("failed to store chunks: %w", err)
+		}
 	}
 
 	// Update document as processed
@@ -125,10 +147,46 @@ func (r *RAGService) Query(query entity.RAGQuery) (*entity.RAGResponse, error) {
 		return nil, fmt.Errorf("failed to generate query embedding: %w", err)
 	}
 
-	// Search for similar chunks
-	chunks, err := r.repo.SearchSimilar(query.AgentID, embeddings[0], query.TopK, query.Threshold)
-	if err != nil {
-		return nil, fmt.Errorf("failed to search similar chunks: %w", err)
+	// Search for similar chunks based on vector DB type
+	var chunks []entity.RetrievedChunk
+	if r.vectorDBType == "pinecone" && r.vectorDB != nil {
+		// Search in Pinecone
+		pineconeResults, err := r.vectorDB.Search(query.AgentID, embeddings[0], query.TopK, query.Threshold)
+		if err != nil {
+			return nil, fmt.Errorf("failed to search Pinecone: %w", err)
+		}
+		// Get full metadata from PostgreSQL
+		var chunkIDs []string
+		for _, result := range pineconeResults {
+			chunkIDs = append(chunkIDs, result.DocumentID)
+		}
+		if len(chunkIDs) > 0 {
+			dbChunks, err := r.repo.GetChunksByIDs(chunkIDs)
+			if err != nil {
+				return nil, fmt.Errorf("failed to get chunks metadata: %w", err)
+			}
+			// Merge Pinecone scores with PostgreSQL metadata
+			for _, pineconeResult := range pineconeResults {
+				for _, dbChunk := range dbChunks {
+					if dbChunk.ID == pineconeResult.DocumentID {
+						chunks = append(chunks, entity.RetrievedChunk{
+							Content:      dbChunk.Content,
+							Metadata:     dbChunk.Metadata,
+							Score:        pineconeResult.Score,
+							DocumentID:   dbChunk.DocumentID,
+							DocumentType: entity.DocumentType(dbChunk.Metadata["type"]),
+						})
+						break
+					}
+				}
+			}
+		}
+	} else {
+		// Search in PostgreSQL (pgvector)
+		chunks, err = r.repo.SearchSimilar(query.AgentID, embeddings[0], query.TopK, query.Threshold)
+		if err != nil {
+			return nil, fmt.Errorf("failed to search similar chunks: %w", err)
+		}
 	}
 
 	// Build context from retrieved chunks

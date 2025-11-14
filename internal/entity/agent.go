@@ -69,43 +69,39 @@ type Agent struct {
 	Name             string            `json:"name" gorm:"type:varchar(255);not null;index"`
 	Description      string            `json:"description" gorm:"type:text;not null"`
 	AgentType        AgentType         `json:"agent_type" gorm:"type:int;not null;index"`
-	AiModel          string            `json:"ai_model" gorm:"type:varchar(255);not null;index"`
-	AiProvider       string            `json:"ai_provider" gorm:"type:varchar(30);not null;index"`
-	CreditsPer1k     int               `json:"credits_per_1k" gorm:"type:int;not null"`
+	AiModelId        string            `json:"ai_model_id" gorm:"type:varchar(36);not null;index"`
 	Status           AgentStatus       `json:"status" gorm:"type:varchar(20);not null;index"`
 	CreatedAt        string            `json:"created_at" gorm:"not null"`
 	UpdatedAt        string            `json:"updated_at" gorm:"not null"`
-	User             *Users            `json:"user,omitempty" gorm:"foreignKey:UserId;constraint:OnDelete:CASCADE;"`
-	AgentAppearance  *AgentAppearance  `json:"agent_appearance,omitempty" gorm:"foreignKey:AgentId;constraint:OnDelete:CASCADE;"`
-	AgentBehavior    *AgentBehavior    `json:"agent_behavior,omitempty" gorm:"foreignKey:AgentId;constraint:OnDelete:CASCADE;"`
-	AgentChannel     *AgentChannel     `json:"agent_channel,omitempty" gorm:"foreignKey:AgentId;constraint:OnDelete:CASCADE;"`
-	AgentIntegration *AgentIntegration `json:"agent_integration,omitempty" gorm:"foreignKey:AgentId;constraint:OnDelete:CASCADE;"`
-	AgentStats       *AgentStats       `json:"agent_stats,omitempty" gorm:"foreignKey:AgentId;constraint:OnDelete:CASCADE;"`
-	TrainingData     []TrainingData    `json:"training_data,omitempty" gorm:"foreignKey:AgentId;constraint:OnDelete:CASCADE;"`
+	User             *Users            `json:"user,omitempty" gorm:"foreignKey:UserId;references:ID;constraint:OnDelete:CASCADE,-:save,-:update"`
+	AiModel          *AiModel          `json:"ai_model,omitempty" gorm:"foreignKey:AiModelId;references:ID;constraint:OnDelete:RESTRICT,-:save,-:update"`
+	AgentAppearance  *AgentAppearance  `json:"agent_appearance,omitempty" gorm:"foreignKey:AgentId;references:ID;constraint:OnDelete:CASCADE,-:save,-:update"`
+	AgentBehavior    *AgentBehavior    `json:"agent_behavior,omitempty" gorm:"foreignKey:AgentId;references:ID;constraint:OnDelete:CASCADE,-:save,-:update"`
+	AgentChannel     *AgentChannel     `json:"agent_channel,omitempty" gorm:"foreignKey:AgentId;references:ID;constraint:OnDelete:CASCADE,-:save,-:update"`
+	AgentIntegration *AgentIntegration `json:"agent_integration,omitempty" gorm:"foreignKey:AgentId;references:ID;constraint:OnDelete:CASCADE,-:save,-:update"`
+	AgentStats       *AgentStats       `json:"agent_stats,omitempty" gorm:"foreignKey:AgentId;references:ID;constraint:OnDelete:CASCADE,-:save,-:update"`
+	TrainingData     []TrainingData    `json:"training_data,omitempty" gorm:"foreignKey:AgentId;references:ID;constraint:OnDelete:CASCADE,-:save,-:update"`
 }
 
 type AgentUpdate struct {
-	Name         *string      `json:"name,omitempty"`
-	Description  *string      `json:"description,omitempty"`
-	AgentType    *AgentType   `json:"agent_type" gorm:"enum('multimodal', 'text', 'audio')"` //FIXME: USE THE CAR TYPE ENUMS
-	AiModel      *string      `json:"ai_model,omitempty"`
-	AiProvider   *string      `json:"ai_provider,omitempty"`
-	CreditsPer1k *int         `json:"credits_per_1k,omitempty"`
-	Status       *AgentStatus `json:"status,omitempty"`
+	Name        *string      `json:"name,omitempty"`
+	Description *string      `json:"description,omitempty"`
+	AgentType   *AgentType   `json:"agent_type" gorm:"enum('multimodal', 'text', 'audio')"`
+	AiModelId   *string      `json:"ai_model_id,omitempty"`
+	Status      *AgentStatus `json:"status,omitempty"`
 }
 
 type AgentResponse struct {
-	ID           string      `json:"id"`
-	UserId       string      `json:"userId"`
-	Name         string      `json:"name"`
-	Description  string      `json:"description"`
-	AgentType    AgentType   `json:"agent_type"`
-	AiModel      string      `json:"ai_model"`
-	AiProvider   string      `json:"ai_provider"`
-	CreditsPer1k int         `json:"credits_per_1k"`
-	Status       AgentStatus `json:"status"`
-	CreatedAt    string      `json:"created_at"`
-	UpdatedAt    string      `json:"updated_at"`
+	ID          string      `json:"id"`
+	UserId      string      `json:"userId"`
+	Name        string      `json:"name"`
+	Description string      `json:"description"`
+	AgentType   AgentType   `json:"agent_type"`
+	AiModelId   string      `json:"ai_model_id"`
+	AiModel     *AiModel    `json:"ai_model,omitempty"`
+	Status      AgentStatus `json:"status"`
+	CreatedAt   string      `json:"created_at"`
+	UpdatedAt   string      `json:"updated_at"`
 }
 
 type AgentAppearanceUpdate struct {
@@ -151,7 +147,7 @@ type AgentAppearance struct {
 	BubbleStyle    string `json:"bubble_style" gorm:"type:varchar(20);not null"`
 	CreatedAt      string `json:"created_at" gorm:"not null"`
 	UpdatedAt      string `json:"updated_at" gorm:"not null"`
-	Agent          *Agent `json:"agent,omitempty" gorm:"foreignKey:AgentId;constraint:OnDelete:CASCADE;"`
+	Agent          *Agent `json:"agent,omitempty" gorm:"foreignKey:AgentId;references:ID;constraint:OnDelete:CASCADE,-:save,-:update"`
 }
 
 type AgentBehavior struct {
@@ -166,9 +162,9 @@ type AgentBehavior struct {
 	MaxTokens           int                `json:"max_tokens" gorm:"type:int;default:2048"`
 	CreatedAt           string             `json:"created_at" gorm:"not null"`
 	UpdatedAt           string             `json:"updated_at" gorm:"not null"`
-	Agent               *Agent             `json:"agent,omitempty" gorm:"foreignKey:AgentId;constraint:OnDelete:CASCADE;"`
-	SystemInstruction   *SystemInstruction `json:"system_instruction,omitempty" gorm:"foreignKey:SystemInstructionId;constraint:OnDelete:SET NULL;"`
-	PromptTemplate      *PromptTemplate    `json:"prompt_template,omitempty" gorm:"foreignKey:PromptTemplateId;constraint:OnDelete:SET NULL;"`
+	Agent               *Agent             `json:"agent,omitempty" gorm:"foreignKey:AgentId;references:ID;constraint:OnDelete:CASCADE,-:save,-:update"`
+	SystemInstruction   *SystemInstruction `json:"system_instruction,omitempty" gorm:"foreignKey:SystemInstructionId;references:ID;constraint:OnDelete:SET NULL,-:save,-:update"`
+	PromptTemplate      *PromptTemplate    `json:"prompt_template,omitempty" gorm:"foreignKey:PromptTemplateId;references:ID;constraint:OnDelete:SET NULL,-:save,-:update"`
 }
 
 type StringArray []string
@@ -187,7 +183,7 @@ type AgentChannel struct {
 	ChannelId StringArray `json:"channel_id" gorm:"type:text[];not null"`
 	CreatedAt string      `json:"created_at" gorm:"not null"`
 	UpdatedAt string      `json:"updated_at" gorm:"not null"`
-	Agent     *Agent      `json:"agent,omitempty" gorm:"foreignKey:AgentId;constraint:OnDelete:CASCADE;"`
+	Agent     *Agent      `json:"agent,omitempty" gorm:"foreignKey:AgentId;references:ID;constraint:OnDelete:CASCADE,-:save,-:update"`
 }
 type AgentIntegration struct {
 	ID            string      `json:"id" gorm:"primaryKey;type:varchar(36)"`
@@ -198,7 +194,7 @@ type AgentIntegration struct {
 	IsActive      bool        `json:"is_active" gorm:"type:boolean;default:false;index"`
 	CreatedAt     string      `json:"created_at" gorm:"not null"`
 	UpdatedAt     string      `json:"updated_at" gorm:"not null"`
-	Agent         *Agent      `json:"agent,omitempty" gorm:"foreignKey:AgentId;constraint:OnDelete:CASCADE;"`
+	Agent         *Agent      `json:"agent,omitempty" gorm:"foreignKey:AgentId;references:ID;constraint:OnDelete:CASCADE,-:save,-:update"`
 }
 
 type AgentStats struct {
@@ -212,7 +208,7 @@ type AgentStats struct {
 	LastCalculatedAt time.Time `json:"last_calculated_at" gorm:"type:timestamp;index"`
 	CreatedAt        string    `json:"created_at" gorm:"not null"`
 	UpdatedAt        string    `json:"updated_at" gorm:"not null"`
-	Agent            *Agent    `json:"agent,omitempty" gorm:"foreignKey:AgentId;constraint:OnDelete:CASCADE;"`
+	Agent            *Agent    `json:"agent,omitempty" gorm:"foreignKey:AgentId;references:ID;constraint:OnDelete:CASCADE,-:save,-:update"`
 }
 
 type TrainingData struct {
@@ -223,5 +219,5 @@ type TrainingData struct {
 	IsActive    bool            `json:"is_active" gorm:"type:boolean;default:false;index"`
 	CreatedAt   string          `json:"created_at" gorm:"not null"`
 	UpdatedAt   string          `json:"updated_at" gorm:"not null"`
-	Agent       *Agent          `json:"agent,omitempty" gorm:"foreignKey:AgentId;constraint:OnDelete:CASCADE;"`
+	Agent       *Agent          `json:"agent,omitempty" gorm:"foreignKey:AgentId;references:ID;constraint:OnDelete:CASCADE,-:save,-:update"`
 }

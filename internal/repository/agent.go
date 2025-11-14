@@ -18,19 +18,17 @@ func NewAgentRepository(db *gorm.DB) AgentRepositoryInterface {
 	return &AgentRepository{db: db}
 }
 
-func (r *AgentRepository) CreateAgent(userId, name, description, aiModel, aiProvider string, agentType entity.AgentType, credit_per_1k int, status entity.AgentStatus) (*entity.Agent, error) {
+func (r *AgentRepository) CreateAgent(userId, name, description, aiModelId string, agentType entity.AgentType, status entity.AgentStatus) (*entity.Agent, error) {
 	agent := &entity.Agent{
-		ID:           uuid.New().String(),
-		UserId:       userId,
-		Name:         name,
-		Description:  description,
-		AgentType:    agentType,
-		AiModel:      aiModel,
-		AiProvider:   aiProvider,
-		CreditsPer1k: credit_per_1k,
-		Status:       status,
-		CreatedAt:    time.Now().UTC().Format(time.RFC3339),
-		UpdatedAt:    time.Now().UTC().Format(time.RFC3339),
+		ID:          uuid.New().String(),
+		UserId:      userId,
+		Name:        name,
+		Description: description,
+		AgentType:   agentType,
+		AiModelId:   aiModelId,
+		Status:      status,
+		CreatedAt:   time.Now().UTC().Format(time.RFC3339),
+		UpdatedAt:   time.Now().UTC().Format(time.RFC3339),
 	}
 
 	if err := r.db.Create(agent).Error; err != nil {
@@ -179,7 +177,7 @@ func (r *AgentRepository) UpdateAgentIntegration(integration *entity.AgentIntegr
 
 func (r *AgentRepository) GetAgent(id string) (*entity.Agent, error) {
 	var agent entity.Agent
-	if err := r.db.Preload("User").Preload("AgentAppearance").Preload("AgentBehavior").Preload("AgentBehavior.SystemInstruction").Preload("AgentBehavior.PromptTemplate").Preload("AgentChannel").Preload("AgentIntegration").Preload("AgentStats").Preload("TrainingData").Where("id = ?", id).First(&agent).Error; err != nil {
+	if err := r.db.Preload("User").Preload("AiModel").Preload("AgentAppearance").Preload("AgentBehavior").Preload("AgentBehavior.SystemInstruction").Preload("AgentBehavior.PromptTemplate").Preload("AgentChannel").Preload("AgentIntegration").Preload("AgentStats").Preload("TrainingData").Where("id = ?", id).First(&agent).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, appErrors.NewNotFoundError("Agent not found")
 		}
@@ -188,10 +186,9 @@ func (r *AgentRepository) GetAgent(id string) (*entity.Agent, error) {
 	return &agent, nil
 }
 
-// TODO: GET AGENT BY OWNER ID
 func (r *AgentRepository) GetAgentsByUserId(userId string) (*[]entity.Agent, error) {
 	var agents []entity.Agent
-	if err := r.db.Select("id", "user_id", "name", "description", "agent_type", "ai_model", "ai_provider", "credits_per1k", "status", "created_at", "updated_at").Where("user_id = ?", userId).Find(&agents).Error; err != nil {
+	if err := r.db.Preload("AiModel").Where("user_id = ?", userId).Find(&agents).Error; err != nil {
 		return nil, appErrors.WrapDatabaseError(err, "get agents by user ID")
 	}
 	return &agents, nil

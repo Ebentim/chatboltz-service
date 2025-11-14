@@ -23,11 +23,11 @@ type Users struct {
 	ID                string     `json:"id" gorm:"primaryKey;type:varchar(36)"`
 	FirebaseUID       string     `json:"firebase_uid" gorm:"uniqueIndex;type:varchar(128);not null"`
 	Name              string     `json:"name" gorm:"type:varchar(255);not null"`
-	Agents            []Agent    `json:"agents" gorm:"foreignKey:UserId;constraint:OnDelete:CASCADE;"`
+	Agents            []Agent    `json:"agents" gorm:"foreignKey:UserId;references:ID;constraint:OnDelete:CASCADE,-:save,-:update"`
 	Email             string     `json:"email" gorm:"uniqueIndex;type:varchar(255);not null"`
 	Role              string     `json:"role" gorm:"type:varchar(50);not null;default:admin"`
 	Avatar            *string    `json:"avatar" gorm:"type:text"`
-	OTPSecret         *string    `json:"otp_secret" gorm:"type:varchar(64);index"`
+	OTPSecret         *string    `json:"-" gorm:"type:varchar(64);index"`
 	OTPEnabled        bool       `json:"otp_enabled" gorm:"type:boolean;not null;default:false"`
 	OTPLastVerifiedAt *time.Time `json:"otp_last_verified_at" gorm:"type:timestamp"`
 	CreatedAt         string     `json:"created_at" gorm:"not null"`

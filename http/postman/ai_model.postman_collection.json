@@ -1,0 +1,190 @@
+{
+	"info": {
+		"name": "AI Models API",
+		"description": "API endpoints for managing AI models. Only SuperAdmin can create, update, or delete models.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Create AI Model",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{superadmin_token}}",
+						"type": "text"
+					},
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"name\": \"gpt-4o\",\n  \"provider\": \"openai\",\n  \"credits_per_1k\": 10,\n  \"supports_text\": true,\n  \"supports_vision\": true,\n  \"supports_voice\": true,\n  \"is_reasoning\": false\n}"
+				},
+				"url": {
+					"raw": "{{base_url}}/api/ai-models",
+					"host": ["{{base_url}}"],
+					"path": ["api", "ai-models"]
+				},
+				"description": "Create a new AI model. Requires SuperAdmin role."
+			},
+			"response": []
+		},
+		{
+			"name": "Get AI Model",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{token}}",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "{{base_url}}/api/ai-models/:modelId",
+					"host": ["{{base_url}}"],
+					"path": ["api", "ai-models", ":modelId"],
+					"variable": [
+						{
+							"key": "modelId",
+							"value": "{{model_id}}"
+						}
+					]
+				},
+				"description": "Get a specific AI model by ID."
+			},
+			"response": []
+		},
+		{
+			"name": "List All AI Models",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{token}}",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "{{base_url}}/api/ai-models",
+					"host": ["{{base_url}}"],
+					"path": ["api", "ai-models"]
+				},
+				"description": "List all available AI models."
+			},
+			"response": []
+		},
+		{
+			"name": "List AI Models by Provider",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{token}}",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "{{base_url}}/api/ai-models?provider=openai",
+					"host": ["{{base_url}}"],
+					"path": ["api", "ai-models"],
+					"query": [
+						{
+							"key": "provider",
+							"value": "openai",
+							"description": "Filter by provider: openai, anthropic, google, groq, meta"
+						}
+					]
+				},
+				"description": "List AI models filtered by provider."
+			},
+			"response": []
+		},
+		{
+			"name": "Update AI Model",
+			"request": {
+				"method": "PUT",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{superadmin_token}}",
+						"type": "text"
+					},
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"credits_per_1k\": 12,\n  \"supports_voice\": true\n}"
+				},
+				"url": {
+					"raw": "{{base_url}}/api/ai-models/:modelId",
+					"host": ["{{base_url}}"],
+					"path": ["api", "ai-models", ":modelId"],
+					"variable": [
+						{
+							"key": "modelId",
+							"value": "{{model_id}}"
+						}
+					]
+				},
+				"description": "Update an AI model. Requires SuperAdmin role. All fields are optional."
+			},
+			"response": []
+		},
+		{
+			"name": "Delete AI Model",
+			"request": {
+				"method": "DELETE",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{superadmin_token}}",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "{{base_url}}/api/ai-models/:modelId",
+					"host": ["{{base_url}}"],
+					"path": ["api", "ai-models", ":modelId"],
+					"variable": [
+						{
+							"key": "modelId",
+							"value": "{{model_id}}"
+						}
+					]
+				},
+				"description": "Delete an AI model. Requires SuperAdmin role. Will fail if agents are using this model."
+			},
+			"response": []
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:8080"
+		},
+		{
+			"key": "token",
+			"value": ""
+		},
+		{
+			"key": "superadmin_token",
+			"value": ""
+		},
+		{
+			"key": "model_id",
+			"value": ""
+		}
+	]
+}
