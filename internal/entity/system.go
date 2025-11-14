@@ -78,9 +78,9 @@ type SystemInstruction struct {
 	Title      string          `json:"title" gorm:"type:varchar(255);not null;index"`
 	Content    string          `json:"content" gorm:"type:text;not null"`
 	TemplateId *string         `json:"template_id" gorm:"type:varchar(36);index"`
-	Template   *PromptTemplate `json:"template,omitempty" gorm:"foreignKey:TemplateId;constraint:OnDelete:SET NULL;"`
+	Template   *PromptTemplate `json:"template,omitempty" gorm:"foreignKey:TemplateId;references:ID;constraint:OnDelete:SET NULL,-:save,-:update"`
 	CreatedBy  string          `json:"created_by" gorm:"type:varchar(36);not null;index"`
-	User       *Users          `json:"user,omitempty" gorm:"foreignKey:CreatedBy;constraint:OnDelete:CASCADE;"`
+	User       *Users          `json:"user,omitempty" gorm:"foreignKey:CreatedBy;references:ID;constraint:OnDelete:CASCADE,-:save,-:update"`
 	CreatedAt  string          `json:"created_at" gorm:"not null"`
 	UpdatedAt  string          `json:"updated_at" gorm:"not null"`
 }

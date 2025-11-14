@@ -44,7 +44,7 @@ func (m *LLMManager) ProcessMultimodalMessage(agent entity.Agent, messages []Mul
 		return "", err
 	}
 
-	config := m.BuildConfig(entity.AgentBehavior{}, agent.AiModel)
+	config := m.BuildConfig(entity.AgentBehavior{}, agent.AiModel.Name)
 	return provider.CompleteMultimodalConversation(messages, config)
 }
 

@@ -1,0 +1,130 @@
+{
+  "info": {
+    "name": "Helix BE - Training Module",
+    "description": "Training and RAG endpoints for Helix Backend API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "agentId",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Upload Training Data",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            {
+              "key": "file",
+              "type": "file",
+              "src": []
+            },
+            {
+              "key": "agent_id",
+              "value": "{{agentId}}",
+              "type": "text"
+            },
+            {
+              "key": "data_type",
+              "value": "document",
+              "type": "text"
+            }
+          ]
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/training/upload",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "v1", "training", "upload"]
+        }
+      }
+    },
+    {
+      "name": "Process Training Data",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"agent_id\": \"{{agentId}}\",\n  \"data_source\": \"uploaded_file\",\n  \"processing_type\": \"vectorize\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/training/process",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "v1", "training", "process"]
+        }
+      }
+    },
+    {
+      "name": "Get Training Status",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/training/status/{{agentId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "v1", "training", "status", "{{agentId}}"]
+        }
+      }
+    },
+    {
+      "name": "Search Knowledge Base",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"agent_id\": \"{{agentId}}\",\n  \"query\": \"How to reset password?\",\n  \"limit\": 5\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/training/search",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "v1", "training", "search"]
+        }
+      }
+    }
+  ]
+}

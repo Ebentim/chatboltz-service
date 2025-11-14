@@ -1,6 +1,7 @@
 ### Variables
-@baseUrl = http://localhost:8080
-@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiYjNiMGI5NTEtZmEzMS00OWQ5LWE4NjItNDViYjQ4YTgzNThiIiwiZW1haWwiOiJlYmVudGltNEBnbWFpbC5jb20iLCJyb2xlIjoic3VwZXJhZG1pbiIsImlzcyI6IkNoYXRib2x0eiIsImV4cCI6MTc2MjM4NDcyOCwiaWF0IjoxNzYyMzQxNTI4fQ.lY_DD_gMWnvBoN_mA_1lY_WRqLGOUeZwsBGtIa2tGQI
+# @baseUrl = https://boltz.alpinesbolt.com
+@baseUrl = http//localhost:8080
+@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiYjNiMGI5NTEtZmEzMS00OWQ5LWE4NjItNDViYjQ4YTgzNThiIiwiZW1haWwiOiJlYmVudGltNEBnbWFpbC5jb20iLCJyb2xlIjoic3VwZXJhZG1pbiIsImlzcyI6IkNoYXRib2x0eiIsImV4cCI6MTc2MTIyNjQwNSwiaWF0IjoxNzYxMTgzMjA1fQ.9zW_NqmAi4ch4Nu_sq0KvU22pcay_IVfzWGWLnsaAhc
 @userId = b3b0b951-fa31-49d9-a862-45bb48a8358b
 @agentId = 9e0c8d37-5520-4a16-903a-49dd0a30fa30
 @appearanceId = 66f36059-d310-4618-9a31-c3185a43c85b
@@ -276,3 +277,17 @@ Authorization: Bearer {{token}}
 # GET {{baseUrl}}/ws/v1/chat/
 # Upgrade: websocket
 # Connection: Upgrade
+
+### Scraper - Scrape a page (public)
+POST {{baseUrl}}/api/v1/scrape
+Content-Type: application/json
+
+{
+  "url": "https://www.alpinesbolt.com/login",
+  "trace": true,
+  "exclude": ["https://www.alpinesbolt.com/*",],
+  "max_pages": 1
+}
+
+# Example: If your server is running locally with the default config, set
+# @baseUrl = http://localhost:8000

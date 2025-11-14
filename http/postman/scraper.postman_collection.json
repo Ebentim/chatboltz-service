@@ -1,0 +1,38 @@
+{
+  "info": {
+    "name": "Helix BE - Scraper Module",
+    "description": "Web scraping endpoints for Helix Backend API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Scrape Web Page",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"url\": \"https://www.example.com\",\n  \"trace\": true,\n  \"exclude\": [\"https://www.example.com/excluded/*\"],\n  \"max_pages\": 1\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/scrape",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "v1", "scrape"]
+        },
+        "description": "Scrape a web page and extract content. This is a public endpoint that doesn't require authentication."
+      }
+    }
+  ]
+}

@@ -33,6 +33,8 @@ func InitDB(databaseURL string) (*gorm.DB, error) {
 		&entity.AgentIntegration{},
 		&entity.AgentStats{},
 		&entity.TrainingData{},
+		&entity.TrainingDocument{},
+		&entity.DocumentChunk{},
 	); err != nil {
 		return nil, fmt.Errorf("failed to migrate database: %w", err)
 	}
@@ -47,18 +49,18 @@ func runPreMigrationFixes(db *gorm.DB) error {
 
 	// Fix array columns if they exist and are not proper arrays
 	var exists bool
-	
+
 	// Check and fix agent_channels.channel_id
 	db.Raw("SELECT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'agent_channels' AND column_name = 'channel_id' AND data_type != 'ARRAY')").Scan(&exists)
 	if exists {
 		db.Exec("ALTER TABLE agent_channels ALTER COLUMN channel_id TYPE text[] USING CASE WHEN channel_id ~ '^\\{.*\\}$' THEN channel_id::text[] ELSE string_to_array(channel_id, ',') END")
 	}
-	
+
 	// Check and fix agent_integrations.integration_id
 	db.Raw("SELECT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'agent_integrations' AND column_name = 'integration_id' AND data_type != 'ARRAY')").Scan(&exists)
 	if exists {
 		db.Exec("ALTER TABLE agent_integrations ALTER COLUMN integration_id TYPE text[] USING CASE WHEN integration_id ~ '^\\{.*\\}$' THEN integration_id::text[] ELSE string_to_array(integration_id, ',') END")
 	}
-	
+
 	return nil
 }

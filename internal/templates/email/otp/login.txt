@@ -1,0 +1,9 @@
+Login Verification Code
+
+Your login verification code is:
+
+{{.Code}}
+
+This code will expire in 10 minutes.
+
+SECURITY ALERT: If you didn't attempt to log in, please secure your account immediately.
