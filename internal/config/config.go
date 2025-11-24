@@ -21,6 +21,7 @@ type Config struct {
 	SMTP_USER                string `env:"SMTP_USER,required"`
 	SMTP_PASS                string `env:"SMTP_PASS,required"`
 	OTP_SECRET               string `env:"OTP_SECRET,required"`
+	ENABLE_ORCHESTRATION     bool   `env:"ENABLE_ORCHESTRATION,default=false"`
 }
 
 // Vector DB Types

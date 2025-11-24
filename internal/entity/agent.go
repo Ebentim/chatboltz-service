@@ -105,13 +105,13 @@ type AgentResponse struct {
 }
 
 type AgentDetailResponse struct {
-	Agent            AgentResponse      `json:"agent"`
-	AgentAppearance  *AgentAppearance   `json:"agent_appearance,omitempty"`
-	AgentBehavior    *AgentBehavior     `json:"agent_behavior,omitempty"`
-	AgentChannel     *AgentChannel      `json:"agent_channel,omitempty"`
-	AgentIntegration *AgentIntegration  `json:"agent_integration,omitempty"`
-	AgentStats       *AgentStats        `json:"agent_stats,omitempty"`
-	TrainingData     []TrainingData     `json:"training_data,omitempty"`
+	Agent            AgentResponse     `json:"agent"`
+	AgentAppearance  *AgentAppearance  `json:"agent_appearance,omitempty"`
+	AgentBehavior    *AgentBehavior    `json:"agent_behavior,omitempty"`
+	AgentChannel     *AgentChannel     `json:"agent_channel,omitempty"`
+	AgentIntegration *AgentIntegration `json:"agent_integration,omitempty"`
+	AgentStats       *AgentStats       `json:"agent_stats,omitempty"`
+	TrainingData     []TrainingData    `json:"training_data,omitempty"`
 }
 
 type AgentAppearanceUpdate struct {

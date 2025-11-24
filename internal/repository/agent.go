@@ -178,7 +178,7 @@ func (r *AgentRepository) UpdateAgentIntegration(integration *entity.AgentIntegr
 func (r *AgentRepository) GetAgent(id string) (*entity.Agent, error) {
 	var agent entity.Agent
 	if err := r.db.Where("id = ?", id).First(&agent).Error; err != nil {
-				if errors.Is(err, gorm.ErrRecordNotFound) {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, appErrors.NewNotFoundError("Agent not found")
 		}
 		return nil, appErrors.WrapDatabaseError(err, "get agent")

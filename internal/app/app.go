@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"encoding/json"
 	"log"
 	"net/http"
 	"os"
@@ -11,12 +12,21 @@ import (
 
 	"github.com/alpinesboltltd/boltz-ai/internal/config"
 	"github.com/alpinesboltltd/boltz-ai/internal/crypto"
+	engdispatcher "github.com/alpinesboltltd/boltz-ai/internal/engine/dispatcher"
+	engexecutor "github.com/alpinesboltltd/boltz-ai/internal/engine/executor"
+	engscheduler "github.com/alpinesboltltd/boltz-ai/internal/engine/scheduler"
+	engstore "github.com/alpinesboltltd/boltz-ai/internal/engine/store"
+	engworkflow "github.com/alpinesboltltd/boltz-ai/internal/engine/workflow"
+	"github.com/alpinesboltltd/boltz-ai/internal/entity"
 	"github.com/alpinesboltltd/boltz-ai/internal/handler"
 	"github.com/alpinesboltltd/boltz-ai/internal/middleware"
+	aiprovider "github.com/alpinesboltltd/boltz-ai/internal/provider/ai-provider"
 	"github.com/alpinesboltltd/boltz-ai/internal/provider/smtp"
+	"github.com/alpinesboltltd/boltz-ai/internal/rag"
 	"github.com/alpinesboltltd/boltz-ai/internal/repository"
 	"github.com/alpinesboltltd/boltz-ai/internal/scraper"
 	"github.com/alpinesboltltd/boltz-ai/internal/usecase"
+	csrworkflow "github.com/alpinesboltltd/boltz-ai/workflows/csr"
 	"github.com/gin-gonic/gin"
 )
 
@@ -65,6 +75,56 @@ func Run(cfg *config.Config) {
 		log.Fatal("Failed to initialize training usecase:", err)
 	}
 
+	// Optional: initialize orchestration engine (feature-flagged)
+	var (
+		schedCancel context.CancelFunc
+	)
+	if cfg.ENABLE_ORCHESTRATION {
+		// create store, registry, dispatcher, executor and start scheduler
+		store := engstore.NewPostgresStore(db)
+		reg := engworkflow.NewRegistry()
+		// register CSR workflow for MVP
+		reg.Register(csrworkflow.New())
+		disp := engdispatcher.NewInMemDispatcher()
+		// create an LLM manager and pass a small wrapper function to the executor
+		llmManager := aiprovider.NewLLMManager()
+		llmFunc := func(ctx context.Context, input []byte) (string, error) {
+			// Basic wrapper: create a conversation from input JSON {"prompt": "..."}
+			var m map[string]string
+			_ = json.Unmarshal(input, &m)
+			var msgs []aiprovider.MultimodalMessage
+			if p, ok := m["prompt"]; ok {
+				msgs = append(msgs, aiprovider.MultimodalMessage{Role: aiprovider.RoleUser, Content: p})
+			}
+			// Use default config
+			res, err := llmManager.ProcessMultimodalMessage(entity.Agent{}, msgs, cfg.OPENAI_API_KEY, "", "")
+			if err != nil {
+				return "", err
+			}
+			return res, nil
+		}
+		// initialize RAG service for retrieve_context
+		cohereClient, _ := rag.NewCohereClient(cfg.COHERE_API_KEY)
+		ragRepo := repository.NewRAGRepository(db)
+		mediaProcessor := rag.NewMediaProcessorFactory(cfg.OPENAI_API_KEY, cfg.GOOGLE_API_KEY, cfg.COHERE_API_KEY)
+		var vectorDB rag.VectorDB
+		if cfg.VECTOR_DB_TYPE == "pinecone" && cfg.PINECONE_API_KEY != "" {
+			vd, err := rag.NewPineconeDB(cfg.PINECONE_API_KEY, cfg.PINECONE_INDEX_NAME)
+			if err == nil {
+				vectorDB = vd
+			}
+		}
+		ragService := rag.NewRAGService(cohereClient, ragRepo, mediaProcessor, vectorDB, cfg.VECTOR_DB_TYPE)
+		exec := engexecutor.NewDefaultExecutor(llmFunc, smtpClient, store, ragService)
+		// start scheduler with cancellable context
+		schedCtx, cancel := context.WithCancel(context.Background())
+		schedCancel = cancel
+		// start scheduler with 4 workers by default
+		if err := engscheduler.Start(schedCtx, store, exec, reg, disp, 4); err != nil {
+			log.Printf("orchestration: failed to start scheduler: %v", err)
+		}
+	}
+
 	// Initialize handlers
 	authHandler := handler.NewAuthHandler(userUsecase, []byte(cfg.JWT_SECRET))
 	agentHandler := handler.NewAgentHandler(agentUsecase)
@@ -94,12 +154,12 @@ func Run(cfg *config.Config) {
 		}
 		c.Next()
 	})
-	r.GET("/health", func(c *gin.Context){
+	r.GET("/health", func(c *gin.Context) {
 		c.JSON(200, gin.H{
-			"status":"ok",
+			"status": "ok",
 		})
 	})
-	
+
 	api := r.Group("/api/v1")
 
 	{
@@ -235,6 +295,11 @@ func Run(cfg *config.Config) {
 	<-quit
 	log.Println("Shutting down server...")
 	shuttingDown = true
+
+	// Cancel orchestration scheduler if running
+	if cfg.ENABLE_ORCHESTRATION && schedCancel != nil {
+		schedCancel()
+	}
 
 	// Graceful shutdown with 30 second timeout
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
