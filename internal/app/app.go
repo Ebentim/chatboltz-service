@@ -16,6 +16,7 @@ import (
 	"github.com/alpinesboltltd/boltz-ai/internal/provider/smtp"
 	"github.com/alpinesboltltd/boltz-ai/internal/repository"
 	"github.com/alpinesboltltd/boltz-ai/internal/scraper"
+	"github.com/alpinesboltltd/boltz-ai/internal/seeder"
 	"github.com/alpinesboltltd/boltz-ai/internal/usecase"
 	"github.com/gin-gonic/gin"
 )
@@ -42,11 +43,17 @@ func Run(cfg *config.Config) {
 		log.Fatal("Failed to initialize Firebase:", err)
 	}
 
+	// Seed default agents
+	if err := seeder.SeedDefaultAgents(db); err != nil {
+		log.Printf("Warning: Failed to seed default agents: %v", err)
+	}
+
 	// Initialize repositories
 	userRepo := repository.NewUserRepository(db)
 	agentRepo := repository.NewAgentRepository(db)
 	systemRepo := repository.NewSystemRepository(db)
 	aiModelRepo := repository.NewAiModelRepository(db)
+	workspaceRepo := repository.NewWorkspaceRepository(db)
 
 	// Initialize usecases
 	smtpConfig := smtp.Config{Host: cfg.SMTP_HOST, Port: cfg.SMTP_PORT, User: cfg.SMTP_USER, Pass: cfg.SMTP_PASS}
@@ -60,18 +67,21 @@ func Run(cfg *config.Config) {
 	systemUsecase := usecase.NewSystemUsecase(systemRepo)
 	aiModelUsecase := usecase.NewAiModelUseCase(aiModelRepo)
 	otpUsecase := usecase.NewOTPUsecase(repository.NewUserToken(db), userRepo, 10*time.Minute)
+	workspaceUsecase := usecase.NewWorkspaceUsecase(workspaceRepo)
 	trainingUsecase, err := usecase.NewTrainingUseCase(cfg.COHERE_API_KEY, cfg.OPENAI_API_KEY, cfg.GOOGLE_API_KEY, cfg.PINECONE_API_KEY, cfg.PINECONE_INDEX_NAME, cfg.VECTOR_DB_TYPE, db, agentRepo)
 	if err != nil {
 		log.Fatal("Failed to initialize training usecase:", err)
 	}
+	chatService := usecase.NewChatService(agentRepo)
 
 	// Initialize handlers
 	authHandler := handler.NewAuthHandler(userUsecase, []byte(cfg.JWT_SECRET))
-	agentHandler := handler.NewAgentHandler(agentUsecase)
+	agentHandler := handler.NewAgentHandler(agentUsecase, chatService)
 	systemHandler := handler.NewSystemHandler(systemUsecase)
 	aiModelHandler := handler.NewAiModelHandler(aiModelUsecase)
 	otpHandler := handler.NewOTPHandler(otpUsecase, emailService)
 	trainingHandler := handler.NewTrainingHandler(trainingUsecase)
+	workspaceHandler := handler.NewWorkspaceHandler(workspaceUsecase)
 
 	// Initialize scraper service + handler
 	scraperService := scraper.NewService(nil)
@@ -207,12 +217,20 @@ func Run(cfg *config.Config) {
 			aiModels.PUT("/:modelId", aiModelHandler.UpdateAiModel)
 			aiModels.DELETE("/:modelId", aiModelHandler.DeleteAiModel)
 		}
+
+		workspaces := api.Group("/workspaces")
+		workspaces.Use(middleware.AuthMiddleware([]byte(cfg.JWT_SECRET)))
+		{
+			workspaces.POST("", workspaceHandler.CreateWorkspace)
+			workspaces.GET("", workspaceHandler.GetUserWorkspaces)
+			workspaces.GET("/:id", workspaceHandler.GetWorkspace)
+		}
 	}
 	ws := r.Group("/ws/v1")
 	{
 		chat := ws.Group("/chat")
 		{
-			chat.GET("/", agentHandler.GetAgent)
+			chat.GET("/", agentHandler.HandleWebSocket)
 		}
 	}
 

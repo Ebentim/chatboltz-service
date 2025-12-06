@@ -12,11 +12,13 @@ import (
 
 type AgentHandler struct {
 	agentUsecase *usecase.AgentUsecase
+	chatService  *usecase.ChatService
 }
 
-func NewAgentHandler(agentUsecase *usecase.AgentUsecase) *AgentHandler {
+func NewAgentHandler(agentUsecase *usecase.AgentUsecase, chatService *usecase.ChatService) *AgentHandler {
 	return &AgentHandler{
 		agentUsecase: agentUsecase,
+		chatService:  chatService,
 	}
 }
 
@@ -45,7 +47,7 @@ func (h *AgentHandler) CreateAgent(c *gin.Context) {
 		req.UserId = userID
 	}
 
-	agent, err := h.agentUsecase.CreateNewAgent(req.UserId, req.Name, req.Description, req.AiModelId, req.AgentType, req.Status)
+	agent, err := h.agentUsecase.CreateNewAgent(req.UserId, req.WorkspaceID, req.Name, req.Description, req.AiModelId, req.AgentType, req.Status)
 	if err != nil {
 		appErrors.HandleError(c, err, "CreateAgent")
 		return

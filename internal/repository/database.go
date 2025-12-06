@@ -35,6 +35,8 @@ func InitDB(databaseURL string) (*gorm.DB, error) {
 		&entity.TrainingData{},
 		&entity.TrainingDocument{},
 		&entity.DocumentChunk{},
+		&entity.Workspace{},
+		&entity.WorkspaceMember{},
 	); err != nil {
 		return nil, fmt.Errorf("failed to migrate database: %w", err)
 	}

@@ -15,43 +15,45 @@ var upgrader = websocket.Upgrader{
 	ReadBufferSize:  1024,
 	WriteBufferSize: 1024,
 	CheckOrigin: func(r *http.Request) bool {
-		origin := r.Header.Get("Origin")
-		if origin != "http://"+r.Host && origin != "https://"+r.Host {
-			return false
-		}
-		return true
+		return true // Allow all origins for MVP
 	},
 	HandshakeTimeout: time.Duration(time.Second * 30),
 }
 
-func WebSocketHandler(c *gin.Context) {
+func (h *AgentHandler) HandleWebSocket(c *gin.Context) {
 	conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-
 	defer conn.Close()
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	client := &usecase.AgentClient{
-		ID: fmt.Sprintf("boltz-agent"),
-	}
 
 	for {
-		select {
-		case <-ctx.Done():
-			return
-		default:
-			MessageType, msg, err := conn.ReadMessage()
-			if err != nil {
-				return
-			}
-			if err := conn.WriteMessage(MessageType, msg); err != nil {
-				return
-			}
-			client.ReadPump()
+		// Read message
+		var msg struct {
+			Message string `json:"message"`
+			AgentID string `json:"agent_id"`
+			APIKey  string `json:"api_key"`
+		}
+		
+		if err := conn.ReadJSON(&msg); err != nil {
+			break
+		}
+
+		// Process message
+		response, err := h.chatService.ProcessMessage(msg.AgentID, msg.Message, msg.APIKey)
+		if err != nil {
+			conn.WriteJSON(gin.H{"error": err.Error()})
+			continue
+		}
+
+		// Send response
+		if err := conn.WriteJSON(gin.H{
+			"type": "response",
+			"content": response,
+			"agent_id": msg.AgentID,
+		}); err != nil {
+			break
 		}
 	}
 }
