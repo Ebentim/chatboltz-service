@@ -72,7 +72,7 @@ func Run(cfg *config.Config) {
 	if err != nil {
 		log.Fatal("Failed to initialize training usecase:", err)
 	}
-	chatService := usecase.NewChatService(agentRepo)
+	chatService := usecase.NewChatService(agentRepo, systemRepo)
 
 	// Initialize handlers
 	authHandler := handler.NewAuthHandler(userUsecase, []byte(cfg.JWT_SECRET))
@@ -104,12 +104,12 @@ func Run(cfg *config.Config) {
 		}
 		c.Next()
 	})
-	r.GET("/health", func(c *gin.Context){
+	r.GET("/health", func(c *gin.Context) {
 		c.JSON(200, gin.H{
-			"status":"ok",
+			"status": "ok",
 		})
 	})
-	
+
 	api := r.Group("/api/v1")
 
 	{

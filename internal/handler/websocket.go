@@ -1,12 +1,9 @@
 package handler
 
 import (
-	"context"
-	"fmt"
 	"net/http"
 	"time"
 
-	"github.com/alpinesboltltd/boltz-ai/internal/usecase"
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
 )
@@ -35,7 +32,7 @@ func (h *AgentHandler) HandleWebSocket(c *gin.Context) {
 			AgentID string `json:"agent_id"`
 			APIKey  string `json:"api_key"`
 		}
-		
+
 		if err := conn.ReadJSON(&msg); err != nil {
 			break
 		}
@@ -49,8 +46,8 @@ func (h *AgentHandler) HandleWebSocket(c *gin.Context) {
 
 		// Send response
 		if err := conn.WriteJSON(gin.H{
-			"type": "response",
-			"content": response,
+			"type":     "response",
+			"content":  response,
 			"agent_id": msg.AgentID,
 		}); err != nil {
 			break
