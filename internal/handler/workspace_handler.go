@@ -26,7 +26,7 @@ func (h *WorkspaceHandler) CreateWorkspace(c *gin.Context) {
 		return
 	}
 
-	userID := c.GetString("userId") // Assuming AuthMiddleware sets this
+	userID := c.GetString("userID") // Assuming AuthMiddleware sets this
 	if userID == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
 		return
@@ -42,7 +42,7 @@ func (h *WorkspaceHandler) CreateWorkspace(c *gin.Context) {
 }
 
 func (h *WorkspaceHandler) GetUserWorkspaces(c *gin.Context) {
-	userID := c.GetString("userId")
+	userID := c.GetString("userID")
 	if userID == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
 		return
