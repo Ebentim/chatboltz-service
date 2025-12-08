@@ -21,12 +21,16 @@ func InitDB(databaseURL string) (*gorm.DB, error) {
 
 	if err := db.AutoMigrate(
 		&entity.Users{},
+		&entity.Token{},
+		&entity.AiModel{},
+		&entity.Workspace{},
 		&entity.PromptTemplate{},
 		&entity.SystemInstruction{},
 		&entity.Channels{},
 		&entity.Integrations{},
 		&entity.ApiFunctions{},
 		&entity.Agent{},
+		&entity.WorkspaceMember{},
 		&entity.AgentAppearance{},
 		&entity.AgentBehavior{},
 		&entity.AgentChannel{},
@@ -35,8 +39,11 @@ func InitDB(databaseURL string) (*gorm.DB, error) {
 		&entity.TrainingData{},
 		&entity.TrainingDocument{},
 		&entity.DocumentChunk{},
-		&entity.Workspace{},
-		&entity.WorkspaceMember{},
+		&entity.Conversation{},
+		&entity.Message{},
+		&entity.MessageMetadata{},
+		&entity.MultimodalMessage{},
+		&entity.GoogleTokens{},
 	); err != nil {
 		return nil, fmt.Errorf("failed to migrate database: %w", err)
 	}
@@ -45,13 +52,28 @@ func InitDB(databaseURL string) (*gorm.DB, error) {
 }
 
 func runPreMigrationFixes(db *gorm.DB) error {
-	// Clean up invalid foreign key references
-	db.Exec("UPDATE agent_behaviors SET system_instruction_id = NULL WHERE system_instruction_id IS NOT NULL AND system_instruction_id NOT IN (SELECT id FROM system_instructions WHERE id IS NOT NULL)")
-	db.Exec("UPDATE agent_behaviors SET prompt_template_id = NULL WHERE prompt_template_id IS NOT NULL AND prompt_template_id NOT IN (SELECT id FROM prompt_templates WHERE id IS NOT NULL)")
-
-	// Fix array columns if they exist and are not proper arrays
+	// Clean up invalid foreign key references only if tables exist
 	var exists bool
 
+	// Check if agent_behaviors table exists
+	db.Raw("SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'agent_behaviors')").Scan(&exists)
+	if exists {
+		// Check if system_instructions table exists
+		var siExists bool
+		db.Raw("SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'system_instructions')").Scan(&siExists)
+		if siExists {
+			db.Exec("UPDATE agent_behaviors SET system_instruction_id = NULL WHERE system_instruction_id IS NOT NULL AND system_instruction_id NOT IN (SELECT id FROM system_instructions WHERE id IS NOT NULL)")
+		}
+
+		// Check if prompt_templates table exists
+		var ptExists bool
+		db.Raw("SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'prompt_templates')").Scan(&ptExists)
+		if ptExists {
+			db.Exec("UPDATE agent_behaviors SET prompt_template_id = NULL WHERE prompt_template_id IS NOT NULL AND prompt_template_id NOT IN (SELECT id FROM prompt_templates WHERE id IS NOT NULL)")
+		}
+	}
+
+	// Fix array columns if they exist and are not proper arrays
 	// Check and fix agent_channels.channel_id
 	db.Raw("SELECT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'agent_channels' AND column_name = 'channel_id' AND data_type != 'ARRAY')").Scan(&exists)
 	if exists {
