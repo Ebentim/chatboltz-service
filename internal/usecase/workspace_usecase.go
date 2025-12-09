@@ -12,6 +12,7 @@ import (
 type WorkspaceUsecase interface {
 	CreateWorkspace(name, description, ownerID string) (*entity.Workspace, error)
 	GetWorkspace(id string) (*entity.Workspace, error)
+	GetByAgentID(agentID string) (*entity.Workspace, error)
 	GetUserWorkspaces(userID string) ([]entity.Workspace, error)
 	AddMember(workspaceID, userID, role string) error
 }
@@ -48,7 +49,7 @@ func (u *workspaceUsecase) CreateWorkspace(name, description, ownerID string) (*
 		ID:          uuid.New().String(),
 		WorkspaceID: workspaceID,
 		UserID:      ownerID,
-		Role:        "owner",
+		Role:        string(entity.Owner),
 		CreatedAt:   time.Now(),
 		UpdatedAt:   time.Now(),
 	}
@@ -58,6 +59,10 @@ func (u *workspaceUsecase) CreateWorkspace(name, description, ownerID string) (*
 	}
 
 	return workspace, nil
+}
+
+func (u *workspaceUsecase) GetByAgentID(agentID string) (*entity.Workspace, error) {
+	return u.repo.GetByAgentID(agentID)
 }
 
 func (u *workspaceUsecase) GetWorkspace(id string) (*entity.Workspace, error) {

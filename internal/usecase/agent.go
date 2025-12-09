@@ -57,6 +57,7 @@ func (u *AgentUsecase) GetAgent(id string) (*entity.AgentDetailResponse, error) 
 	response := &entity.AgentDetailResponse{
 		Agent: entity.AgentResponse{
 			ID:          agent.ID,
+			WorkspaceID: agent.WorkspaceID,
 			UserId:      agent.UserId,
 			Name:        agent.Name,
 			Description: agent.Description,

@@ -13,6 +13,8 @@ const (
 	SuperAdmin UserRole = "superadmin"
 	Staff      UserRole = "staff"
 	Usr        UserRole = "user"
+	Owner      UserRole = "owner"
+	Member     UserRole = "member"
 )
 
 // NOTE: super admin can only create admin and staff, can create agent, train agent

@@ -11,29 +11,23 @@ import (
 )
 
 type AgentHandler struct {
-	agentUsecase *usecase.AgentUsecase
-	chatService  *usecase.ChatService
+	agentUsecase     *usecase.AgentUsecase
+	chatService      *usecase.ChatService
+	workspaceUsecase usecase.WorkspaceUsecase
 }
 
-func NewAgentHandler(agentUsecase *usecase.AgentUsecase, chatService *usecase.ChatService) *AgentHandler {
+func NewAgentHandler(agentUsecase *usecase.AgentUsecase, chatService *usecase.ChatService, workspaceUsecase usecase.WorkspaceUsecase) *AgentHandler {
 	return &AgentHandler{
-		agentUsecase: agentUsecase,
-		chatService:  chatService,
+		agentUsecase:     agentUsecase,
+		chatService:      chatService,
+		workspaceUsecase: workspaceUsecase,
 	}
 }
 
 func (h *AgentHandler) CreateAgent(c *gin.Context) {
 	// Get user info from JWT token
-	userRole := c.GetString("role")
 	userID := c.GetString("userID")
-
-	fmt.Println(userRole, userID, "User Role and User Id")
-
-	// Check if user is admin or superadmin
-	if userRole != string(entity.Admin) && userRole != string(entity.SuperAdmin) {
-		c.JSON(http.StatusForbidden, gin.H{"error": "Only admin and superadmin can create agents"})
-		return
-	}
+	userRole := c.GetString("role")
 
 	var req entity.Agent
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -42,10 +36,38 @@ func (h *AgentHandler) CreateAgent(c *gin.Context) {
 		return
 	}
 
-	// Use the authenticated user's ID if not provided
-	if req.UserId == "" {
-		req.UserId = userID
+	// RBAC: Check if user has access to the workspace
+	if userRole != string(entity.SuperAdmin) {
+		if req.WorkspaceID == "" {
+			appErrors.HandleError(c, appErrors.NewValidationError("Workspace ID is required"), "CreateAgent")
+			return
+		}
+		workspace, err := h.workspaceUsecase.GetWorkspace(req.WorkspaceID)
+		if err != nil {
+			appErrors.HandleError(c, err, "CreateAgent - GetWorkspace")
+			return
+		}
+
+		isMember := false
+		if workspace.OwnerID == userID {
+			isMember = true
+		} else {
+			for _, member := range workspace.Members {
+				if member.UserID == userID {
+					isMember = true
+					break
+				}
+			}
+		}
+
+		if !isMember {
+			c.JSON(http.StatusForbidden, gin.H{"error": "Access denied to workspace"})
+			return
+		}
 	}
+
+	// Use the authenticated user's ID
+	req.UserId = userID
 
 	agent, err := h.agentUsecase.CreateNewAgent(req.UserId, req.WorkspaceID, req.Name, req.Description, req.AiModelId, req.AgentType, req.Status)
 	if err != nil {
@@ -57,6 +79,41 @@ func (h *AgentHandler) CreateAgent(c *gin.Context) {
 
 func (h *AgentHandler) UpdateAgent(c *gin.Context) {
 	agentId := c.Param("agentId")
+	userID := c.GetString("userID")
+	userRole := c.GetString("role")
+
+	// Check ownership/access via workspace
+	existingAgent, err := h.agentUsecase.GetAgent(agentId)
+	if err != nil {
+		appErrors.HandleError(c, err, "UpdateAgent - GetAgent")
+		return
+	}
+
+	if userRole != string(entity.SuperAdmin) {
+		workspace, err := h.workspaceUsecase.GetWorkspace(existingAgent.Agent.WorkspaceID)
+		if err != nil {
+			appErrors.HandleError(c, err, "UpdateAgent - GetWorkspace")
+			return
+		}
+
+		isMember := false
+		if workspace.OwnerID == userID {
+			isMember = true
+		} else {
+			for _, member := range workspace.Members {
+				if member.UserID == userID {
+					isMember = true
+					break
+				}
+			}
+		}
+
+		if !isMember {
+			c.JSON(http.StatusForbidden, gin.H{"error": "Access denied"})
+			return
+		}
+	}
+
 	var req entity.AgentUpdate
 	if err := c.ShouldBindJSON(&req); err != nil {
 		appErrors.HandleError(c, appErrors.NewValidationError("Invalid request format"), "UpdateAgent - JSON binding")
@@ -74,11 +131,41 @@ func (h *AgentHandler) UpdateAgent(c *gin.Context) {
 
 func (h *AgentHandler) GetAgent(c *gin.Context) {
 	agentId := c.Param("agentId")
+	userID := c.GetString("userID")
+	userRole := c.GetString("role")
+
 	response, err := h.agentUsecase.GetAgent(agentId)
 	if err != nil {
 		appErrors.HandleError(c, err, "GetAgent")
 		return
 	}
+
+	// Check ownership/access via workspace
+	if userRole != string(entity.SuperAdmin) {
+		workspace, err := h.workspaceUsecase.GetWorkspace(response.Agent.WorkspaceID)
+		if err != nil {
+			appErrors.HandleError(c, err, "GetAgent - GetWorkspace")
+			return
+		}
+
+		isMember := false
+		if workspace.OwnerID == userID {
+			isMember = true
+		} else {
+			for _, member := range workspace.Members {
+				if member.UserID == userID {
+					isMember = true
+					break
+				}
+			}
+		}
+
+		if !isMember {
+			c.JSON(http.StatusForbidden, gin.H{"error": "Access denied"})
+			return
+		}
+	}
+
 	c.JSON(http.StatusOK, response)
 }
 
@@ -106,6 +193,7 @@ func (h *AgentHandler) GetAgentByUser(c *gin.Context) {
 	for _, agent := range *agents {
 		agentResponses = append(agentResponses, entity.AgentResponse{
 			ID:          agent.ID,
+			WorkspaceID: agent.WorkspaceID,
 			UserId:      agent.UserId,
 			Name:        agent.Name,
 			Description: agent.Description,
@@ -125,12 +213,40 @@ func (h *AgentHandler) DeleteAgent(c *gin.Context) {
 	agentId := c.Param("agentId")
 	role := c.GetString("role")
 	userId := c.GetString("userID")
-	if role != string(entity.SuperAdmin) {
-		c.JSON(http.StatusForbidden, gin.H{"error": "Only the super admin can delete agents"})
+
+	// Check ownership/access via workspace
+	existingAgent, err := h.agentUsecase.GetAgent(agentId)
+	if err != nil {
+		appErrors.HandleError(c, err, "DeleteAgent - GetAgent")
 		return
 	}
 
-	err := h.agentUsecase.DeleteAgent(agentId, userId)
+	if role != string(entity.SuperAdmin) {
+		workspace, err := h.workspaceUsecase.GetWorkspace(existingAgent.Agent.WorkspaceID)
+		if err != nil {
+			appErrors.HandleError(c, err, "DeleteAgent - GetWorkspace")
+			return
+		}
+
+		isMember := false
+		if workspace.OwnerID == userId {
+			isMember = true
+		} else {
+			for _, member := range workspace.Members {
+				if member.UserID == userId {
+					isMember = true
+					break
+				}
+			}
+		}
+
+		if !isMember {
+			c.JSON(http.StatusForbidden, gin.H{"error": "Access denied"})
+			return
+		}
+	}
+
+	err = h.agentUsecase.DeleteAgent(agentId, userId)
 	if err != nil {
 		appErrors.HandleError(c, err, "DeleteAgent")
 		return

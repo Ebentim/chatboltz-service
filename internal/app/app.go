@@ -76,11 +76,11 @@ func Run(cfg *config.Config) {
 
 	// Initialize handlers
 	authHandler := handler.NewAuthHandler(userUsecase, []byte(cfg.JWT_SECRET))
-	agentHandler := handler.NewAgentHandler(agentUsecase, chatService)
+	agentHandler := handler.NewAgentHandler(agentUsecase, chatService, workspaceUsecase)
 	systemHandler := handler.NewSystemHandler(systemUsecase)
 	aiModelHandler := handler.NewAiModelHandler(aiModelUsecase)
 	otpHandler := handler.NewOTPHandler(otpUsecase, emailService)
-	trainingHandler := handler.NewTrainingHandler(trainingUsecase)
+	trainingHandler := handler.NewTrainingHandler(trainingUsecase, workspaceUsecase)
 	workspaceHandler := handler.NewWorkspaceHandler(workspaceUsecase)
 
 	// Initialize scraper service + handler
@@ -189,8 +189,8 @@ func Run(cfg *config.Config) {
 			agent.POST("/:agentId/training/migrate", trainingHandler.MigrateLegacyTraining)
 		}
 
-		// Scraper endpoint (public). Accepts JSON {url, trace, exclude, max_pages}
-		api.POST("/scrape", scraperHandler.Scrape)
+		// Scraper endpoint (protected)
+		api.POST("/scrape", middleware.AuthMiddleware([]byte(cfg.JWT_SECRET)), scraperHandler.Scrape)
 
 		system := api.Group("/system")
 		system.Use(middleware.AuthMiddleware([]byte(cfg.JWT_SECRET)))

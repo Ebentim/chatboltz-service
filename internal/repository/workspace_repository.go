@@ -9,6 +9,7 @@ type WorkspaceRepository interface {
 	Create(workspace *entity.Workspace) error
 	GetByID(id string) (*entity.Workspace, error)
 	GetByUserID(userID string) ([]entity.Workspace, error)
+	GetByAgentID(agentID string) (*entity.Workspace, error)
 	Update(workspace *entity.Workspace) error
 	Delete(id string) error
 	AddMember(member *entity.WorkspaceMember) error
@@ -30,6 +31,17 @@ func (r *workspaceRepository) Create(workspace *entity.Workspace) error {
 func (r *workspaceRepository) GetByID(id string) (*entity.Workspace, error) {
 	var workspace entity.Workspace
 	if err := r.db.Preload("Members").Preload("Agents").First(&workspace, "id = ?", id).Error; err != nil {
+		return nil, err
+	}
+	return &workspace, nil
+}
+
+func (r *workspaceRepository) GetByAgentID(agentID string) (*entity.Workspace, error) {
+	var workspace entity.Workspace
+	if err := r.db.Joins("JOIN agents ON agents.workspace_id = workspaces.id").
+		Where("agents.id = ?", agentID).
+		Preload("Members").
+		First(&workspace).Error; err != nil {
 		return nil, err
 	}
 	return &workspace, nil
