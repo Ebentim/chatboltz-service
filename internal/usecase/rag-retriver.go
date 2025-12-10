@@ -2,6 +2,7 @@ package usecase
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/alpinesboltltd/boltz-ai/internal/config"
 	"github.com/alpinesboltltd/boltz-ai/internal/entity"
@@ -27,17 +28,22 @@ type RAGRetrieverUseCase struct {
 // Returns:
 //   - *RAGRetrieverUseCase: Configured RAG retriever use case
 func NewRAGRetrieverUseCase(cfg *config.Config, db *gorm.DB) (*RAGRetrieverUseCase, error) {
-	cohere, err := rag.NewCohereClient(cfg.COHERE_API_KEY)
+	// Trim whitespace from API keys (handles trailing newlines from .env)
+	cohereKey := strings.TrimSpace(cfg.COHERE_API_KEY)
+	openaiKey := strings.TrimSpace(cfg.OPENAI_API_KEY)
+	pineconeKey := strings.TrimSpace(cfg.PINECONE_API_KEY)
+
+	cohere, err := rag.NewCohereClient(cohereKey)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create Cohere client: %w", err)
 	}
 
-	mediaProcessor := rag.NewOpenAIMediaProcessor(cfg.OPENAI_API_KEY)
+	mediaProcessor := rag.NewOpenAIMediaProcessor(openaiKey)
 	ragRepo := repository.NewRAGRepository(db)
 
 	var vectorDB rag.VectorDB
-	if cfg.VECTOR_DB_TYPE == "pinecone" && cfg.PINECONE_API_KEY != "" {
-		vectorDB, err = rag.NewPineconeDB(cfg.PINECONE_API_KEY, cfg.PINECONE_INDEX_NAME)
+	if cfg.VECTOR_DB_TYPE == "pinecone" && pineconeKey != "" {
+		vectorDB, err = rag.NewPineconeDB(pineconeKey, cfg.PINECONE_INDEX_NAME)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create Pinecone client: %w", err)
 		}

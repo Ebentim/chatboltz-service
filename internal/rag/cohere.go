@@ -29,6 +29,10 @@ type CohereClient struct {
 //   - *CohereClient: Configured client ready for embedding requests
 //   - error: Any error that occurred during client initialization
 func NewCohereClient(apiKey string) (*CohereClient, error) {
+	if apiKey == "" {
+		return nil, fmt.Errorf("Cohere API key is empty")
+	}
+
 	c := client.NewClient(client.WithToken(apiKey))
 	return &CohereClient{client: c}, nil
 }
