@@ -85,11 +85,7 @@ func AuthMiddleware(jwtSecret []byte) gin.HandlerFunc {
 			return
 		}
 
-		if err := writeClaimsToLog(claims); err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to log claims"})
-			c.Abort()
-			return
-		} // Attach claims to context
+		// Attach claims to context
 		c.Set("userID", claims.UserID)
 		c.Set("email", claims.Email)
 		c.Set("role", string(claims.Role))
@@ -98,7 +94,7 @@ func AuthMiddleware(jwtSecret []byte) gin.HandlerFunc {
 	}
 }
 
-func writeClaimsToLog(claims *JWTClaims) error {
+func WriteClaimsToLog(claims *JWTClaims) error {
 	// Format claims data as string
 	claimsData := fmt.Sprintf("UserID: %s\nEmail: %s\nRole: %s\nIssuer: %s\nIssuedAt: %s\nExpiresAt: %s\n",
 		claims.UserID,
