@@ -106,6 +106,10 @@ func (e *DefaultExecutor) RunStep(ctx context.Context, step *engine.WorkflowStep
 		return engine.StepResult{Success: true, Output: []byte(`{"enqueued":true}`)}, nil
 
 	case "human_review":
+		if e.store == nil {
+			log.Printf("executor: human_review requires store but none configured")
+			return engine.StepResult{Success: false}, fmt.Errorf("state store not configured")
+		}
 		// Notify a human agent for review by enqueueing an email to the agent.
 		var payload map[string]string
 		if err := json.Unmarshal(step.Input, &payload); err != nil {
