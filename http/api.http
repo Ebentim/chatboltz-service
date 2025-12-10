@@ -7,6 +7,7 @@
 @appearanceId = 66f36059-d310-4618-9a31-c3185a43c85b
 @instructionId = sys_inst_001
 @templateId = template_001
+@issue_type = refund
 ### Auth - Signup with Email
 POST {{baseUrl}}/api/v1/auth/signup
 Content-Type: application/json

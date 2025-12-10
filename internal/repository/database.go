@@ -44,6 +44,12 @@ func InitDB(databaseURL string) (*gorm.DB, error) {
 		&entity.MessageMetadata{},
 		&entity.MultimodalMessage{},
 		&entity.GoogleTokens{},
+		// orchestration entities
+		&entity.WorkflowRun{},
+		&entity.WorkflowStep{},
+		&entity.OutboxEvent{},
+		&entity.StepLog{},
+		&entity.RetryMeta{},
 	); err != nil {
 		return nil, fmt.Errorf("failed to migrate database: %w", err)
 	}
