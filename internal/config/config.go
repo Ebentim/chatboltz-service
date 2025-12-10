@@ -26,6 +26,8 @@ type Config struct {
 	// wait for a subscriber to accept an event before considering it dropped.
 	// Value is in milliseconds.
 	DispatcherDeliveryTimeoutMS int `env:"DISPATCHER_DELIVERY_TIMEOUT_MS,default=100"`
+	// OrchestrationWorkerCount controls the number of concurrent workers for the engine.
+	OrchestrationWorkerCount int `env:"ORCHESTRATION_WORKER_COUNT,default=4"`
 }
 
 // Vector DB Types

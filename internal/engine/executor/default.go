@@ -3,6 +3,7 @@ package executor
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"log"
 
 	"github.com/alpinesboltltd/boltz-ai/internal/engine"
@@ -94,6 +95,9 @@ func (e *DefaultExecutor) RunStep(ctx context.Context, step *engine.WorkflowStep
 			Payload:   p,
 			State:     "pending",
 			Published: false,
+		}
+		if e.store == nil {
+			return engine.StepResult{Success: false}, fmt.Errorf("no store configured for executor")
 		}
 		if err := e.store.EnqueueEvent(ctx, ev); err != nil {
 			log.Printf("executor: enqueue outbox error: %v", err)

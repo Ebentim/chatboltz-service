@@ -100,20 +100,22 @@ func Run(cfg *config.Config) {
 		disp := engdispatcher.NewInMemDispatcher()
 		// create an LLM manager and pass a small wrapper function to the executor
 		llmManager := aiprovider.NewLLMManager()
+		// LLM input struct for strict typing
+		type llmInput struct {
+			Prompt string `json:"prompt"`
+		}
 		llmFunc := func(ctx context.Context, input []byte) (string, error) {
-			// Basic wrapper: expect input JSON {"prompt": "..."}
-			var m map[string]string
-			if err := json.Unmarshal(input, &m); err != nil {
+			var in llmInput
+			if err := json.Unmarshal(input, &in); err != nil {
 				return "", fmt.Errorf("invalid LLM input JSON: %w", err)
 			}
 
 			// Ensure prompt exists and is non-empty
-			p, ok := m["prompt"]
-			if !ok || strings.TrimSpace(p) == "" {
+			if strings.TrimSpace(in.Prompt) == "" {
 				return "", fmt.Errorf("missing or empty 'prompt' in LLM input")
 			}
 
-			msgs := []aiprovider.MultimodalMessage{{Role: aiprovider.RoleUser, Content: p}}
+			msgs := []aiprovider.MultimodalMessage{{Role: aiprovider.RoleUser, Content: in.Prompt}}
 
 			// Use default config
 			res, err := llmManager.ProcessMultimodalMessage(entity.Agent{}, msgs, cfg.OPENAI_API_KEY, "", "")
@@ -134,6 +136,8 @@ func Run(cfg *config.Config) {
 			vd, err := rag.NewPineconeDB(cfg.PINECONE_API_KEY, cfg.PINECONE_INDEX_NAME)
 			if err == nil {
 				vectorDB = vd
+			} else {
+				log.Printf("Warning: failed to initialize Pinecone DB: %v", err)
 			}
 		}
 		ragService := rag.NewRAGService(cohereClient, ragRepo, mediaProcessor, vectorDB, cfg.VECTOR_DB_TYPE)
@@ -141,10 +145,14 @@ func Run(cfg *config.Config) {
 		// start scheduler with cancellable context
 		schedCtx, cancel := context.WithCancel(context.Background())
 		schedCancel = cancel
-		// start scheduler with 4 workers by default; capture done channel
-		done, err := engscheduler.Start(schedCtx, store, exec, reg, disp, 4)
+		// start scheduler with workers from config
+		workerCount := cfg.OrchestrationWorkerCount
+		if workerCount <= 0 {
+			workerCount = 4
+		}
+		done, err := engscheduler.Start(schedCtx, store, exec, reg, disp, workerCount)
 		if err != nil {
-			log.Printf("orchestration: failed to start scheduler: %v", err)
+			log.Fatalf("orchestration: failed to start scheduler: %v", err)
 		} else {
 			schedDone = done
 		}

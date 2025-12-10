@@ -145,7 +145,7 @@ func (s *PostgresStore) AppendLog(ctx context.Context, logRec *eng.StepLog) erro
 
 func (s *PostgresStore) EnqueueEvent(ctx context.Context, ev *eng.OutboxEvent) error {
 	ent := &entity.OutboxEvent{
-		ID: ev.ID, EventType: ev.EventType, Payload: ev.Payload, State: ev.State, Published: ev.Published,
+		ID: ev.ID, EventType: ev.EventType, Payload: ev.Payload, State: ev.State, Published: ev.Published, IdempotencyKey: ev.IdempotencyKey,
 	}
 	return s.db.WithContext(ctx).Create(ent).Error
 }
@@ -227,4 +227,9 @@ func (s *PostgresStore) RequeueStaleSteps(ctx context.Context, heartbeatTTLSecon
 		log.Printf("requeue: requeued %d stale steps (heartbeatTTL=%ds)", requeued, heartbeatTTLSeconds)
 	}
 	return requeued, nil
+}
+
+func (s *PostgresStore) HeartbeatStep(ctx context.Context, stepID string) error {
+	// Update last_heartbeat to now()
+	return s.db.WithContext(ctx).Model(&entity.WorkflowStep{}).Where("id = ?", stepID).Update("last_heartbeat", time.Now()).Error
 }

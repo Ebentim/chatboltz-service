@@ -43,6 +43,8 @@ type StateStore interface {
 	// than heartbeatTTL (seconds) and resets them to pending with incremented
 	// attempts and appropriate next_attempt_at/backoff. Returns number requeued.
 	RequeueStaleSteps(ctx context.Context, heartbeatTTLSeconds int, limit int) (int, error)
+	// HeartbeatStep updates the last_heartbeat timestamp for a specific step.
+	HeartbeatStep(ctx context.Context, stepID string) error
 }
 
 type Executor interface {
