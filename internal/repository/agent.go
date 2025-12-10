@@ -18,10 +18,11 @@ func NewAgentRepository(db *gorm.DB) AgentRepositoryInterface {
 	return &AgentRepository{db: db}
 }
 
-func (r *AgentRepository) CreateAgent(userId, name, description, aiModelId string, agentType entity.AgentType, status entity.AgentStatus) (*entity.Agent, error) {
+func (r *AgentRepository) CreateAgent(userId, workspaceId, name, description, aiModelId string, agentType entity.AgentType, status entity.AgentStatus) (*entity.Agent, error) {
 	agent := &entity.Agent{
 		ID:          uuid.New().String(),
 		UserId:      userId,
+		WorkspaceID: workspaceId,
 		Name:        name,
 		Description: description,
 		AgentType:   agentType,

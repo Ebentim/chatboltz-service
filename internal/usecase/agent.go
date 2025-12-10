@@ -16,12 +16,12 @@ func NewAgentUseCase(agentRepo repository.AgentRepositoryInterface) *AgentUsecas
 	}
 }
 
-func (u *AgentUsecase) CreateNewAgent(userId, name, description, aiModelId string, agentType entity.AgentType, status entity.AgentStatus) (*entity.Agent, error) {
+func (u *AgentUsecase) CreateNewAgent(userId, workspaceId, name, description, aiModelId string, agentType entity.AgentType, status entity.AgentStatus) (*entity.Agent, error) {
 	if userId == "" || name == "" {
 		return nil, appErrors.NewValidationError("User ID and name are required")
 	}
 
-	agent, err := u.Agent.CreateAgent(userId, name, description, aiModelId, agentType, status)
+	agent, err := u.Agent.CreateAgent(userId, workspaceId, name, description, aiModelId, agentType, status)
 	if err != nil {
 		return nil, err
 	}
@@ -57,6 +57,7 @@ func (u *AgentUsecase) GetAgent(id string) (*entity.AgentDetailResponse, error) 
 	response := &entity.AgentDetailResponse{
 		Agent: entity.AgentResponse{
 			ID:          agent.ID,
+			WorkspaceID: agent.WorkspaceID,
 			UserId:      agent.UserId,
 			Name:        agent.Name,
 			Description: agent.Description,

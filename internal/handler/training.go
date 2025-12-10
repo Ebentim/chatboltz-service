@@ -12,13 +12,15 @@ import (
 
 // TrainingHandler handles HTTP requests for agent training operations
 type TrainingHandler struct {
-	trainingUsecase *usecase.TrainingUseCase
+	trainingUsecase  *usecase.TrainingUseCase
+	workspaceUsecase usecase.WorkspaceUsecase
 }
 
 // NewTrainingHandler creates a new training handler
-func NewTrainingHandler(trainingUsecase *usecase.TrainingUseCase) *TrainingHandler {
+func NewTrainingHandler(trainingUsecase *usecase.TrainingUseCase, workspaceUsecase usecase.WorkspaceUsecase) *TrainingHandler {
 	return &TrainingHandler{
-		trainingUsecase: trainingUsecase,
+		trainingUsecase:  trainingUsecase,
+		workspaceUsecase: workspaceUsecase,
 	}
 }
 
@@ -27,6 +29,11 @@ func (h *TrainingHandler) TrainWithText(c *gin.Context) {
 	agentID := c.Param("agentId")
 	if agentID == "" {
 		appErrors.HandleError(c, appErrors.NewValidationError("Agent ID is required"), "TrainWithText")
+		return
+	}
+
+	if !h.checkAccess(c, agentID) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Access denied"})
 		return
 	}
 
@@ -54,6 +61,11 @@ func (h *TrainingHandler) TrainWithFile(c *gin.Context) {
 	agentID := c.Param("agentId")
 	if agentID == "" {
 		appErrors.HandleError(c, appErrors.NewValidationError("Agent ID is required"), "TrainWithFile")
+		return
+	}
+
+	if !h.checkAccess(c, agentID) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Access denied"})
 		return
 	}
 
@@ -93,6 +105,11 @@ func (h *TrainingHandler) GetTrainingDocuments(c *gin.Context) {
 		return
 	}
 
+	if !h.checkAccess(c, agentID) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Access denied"})
+		return
+	}
+
 	documents, err := h.trainingUsecase.GetAgentDocuments(agentID)
 	if err != nil {
 		appErrors.HandleError(c, err, "GetTrainingDocuments")
@@ -110,6 +127,11 @@ func (h *TrainingHandler) DeleteTrainingData(c *gin.Context) {
 		return
 	}
 
+	if !h.checkAccess(c, agentID) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Access denied"})
+		return
+	}
+
 	err := h.trainingUsecase.DeleteAgentTraining(agentID)
 	if err != nil {
 		appErrors.HandleError(c, err, "DeleteTrainingData")
@@ -124,6 +146,11 @@ func (h *TrainingHandler) QueryKnowledgeBase(c *gin.Context) {
 	agentID := c.Param("agentId")
 	if agentID == "" {
 		appErrors.HandleError(c, appErrors.NewValidationError("Agent ID is required"), "QueryKnowledgeBase")
+		return
+	}
+
+	if !h.checkAccess(c, agentID) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Access denied"})
 		return
 	}
 
@@ -163,6 +190,11 @@ func (h *TrainingHandler) MigrateLegacyTraining(c *gin.Context) {
 		return
 	}
 
+	if !h.checkAccess(c, agentID) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Access denied"})
+		return
+	}
+
 	err := h.trainingUsecase.TrainAgentFromLegacyData(agentID)
 	if err != nil {
 		appErrors.HandleError(c, err, "MigrateLegacyTraining")
@@ -177,6 +209,11 @@ func (h *TrainingHandler) TrainWithURL(c *gin.Context) {
 	agentID := c.Param("agentId")
 	if agentID == "" {
 		appErrors.HandleError(c, appErrors.NewValidationError("Agent ID is required"), "TrainWithURL")
+		return
+	}
+
+	if !h.checkAccess(c, agentID) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Access denied"})
 		return
 	}
 
@@ -214,6 +251,11 @@ func (h *TrainingHandler) GetTrainingStats(c *gin.Context) {
 		return
 	}
 
+	if !h.checkAccess(c, agentID) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Access denied"})
+		return
+	}
+
 	documents, err := h.trainingUsecase.GetAgentDocuments(agentID)
 	if err != nil {
 		appErrors.HandleError(c, err, "GetTrainingStats")
@@ -237,4 +279,30 @@ func (h *TrainingHandler) GetTrainingStats(c *gin.Context) {
 	stats["total_chunks"] = totalChunks
 
 	c.JSON(http.StatusOK, stats)
+}
+
+func (h *TrainingHandler) checkAccess(c *gin.Context, agentID string) bool {
+	userID := c.GetString("userID")
+	role := c.GetString("role")
+
+	if role == string(entity.SuperAdmin) {
+		return true
+	}
+
+	workspace, err := h.workspaceUsecase.GetByAgentID(agentID)
+	if err != nil {
+		return false
+	}
+
+	if workspace.OwnerID == userID {
+		return true
+	}
+
+	for _, member := range workspace.Members {
+		if member.UserID == userID {
+			return true
+		}
+	}
+
+	return false
 }

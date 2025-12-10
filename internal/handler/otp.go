@@ -74,7 +74,7 @@ func (h *OTPHandler) VerifyOTP(c *gin.Context) {
 
 // Enable2FA enables two-factor authentication
 func (h *OTPHandler) Enable2FA(c *gin.Context) {
-	userID := c.GetString("user_id")
+	userID := c.GetString("userID")
 	if userID == "" {
 		appErrors.HandleError(c, appErrors.NewValidationError("User ID required"), "Enable2FA")
 		return
@@ -90,7 +90,7 @@ func (h *OTPHandler) Enable2FA(c *gin.Context) {
 
 // Disable2FA disables two-factor authentication
 func (h *OTPHandler) Disable2FA(c *gin.Context) {
-	userID := c.GetString("user_id")
+	userID := c.GetString("userID")
 	if userID == "" {
 		appErrors.HandleError(c, appErrors.NewValidationError("User ID required"), "Disable2FA")
 		return

@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/alpinesboltltd/boltz-ai/internal/entity"
+	"github.com/alpinesboltltd/boltz-ai/internal/repository"
 )
 
 type AgentConfig struct {
@@ -16,24 +17,19 @@ type AgentConfig struct {
 }
 
 type AgentCache struct {
-	cache map[string]*AgentConfig
-	mutex sync.RWMutex
-	ttl   time.Duration
-	repo  AgentRepository
+	cache      map[string]*AgentConfig
+	mutex      sync.RWMutex
+	ttl        time.Duration
+	agentRepo  repository.AgentRepositoryInterface
+	systemRepo repository.SystemRepositoryInterface
 }
 
-type AgentRepository interface {
-	GetAgentByID(id string) (*entity.Agent, error)
-	GetAgentBehavior(agentID string) (*entity.AgentBehavior, error)
-	GetSystemInstruction(id string) (*entity.SystemInstruction, error)
-	GetPromptTemplate(id string) (*entity.PromptTemplate, error)
-}
-
-func NewAgentCache(repo AgentRepository, ttl time.Duration) *AgentCache {
+func NewAgentCache(agentRepo repository.AgentRepositoryInterface, systemRepo repository.SystemRepositoryInterface, ttl time.Duration) *AgentCache {
 	cache := &AgentCache{
-		cache: make(map[string]*AgentConfig),
-		ttl:   ttl,
-		repo:  repo,
+		cache:      make(map[string]*AgentConfig),
+		ttl:        ttl,
+		agentRepo:  agentRepo,
+		systemRepo: systemRepo,
 	}
 	go cache.cleanup()
 	return cache
@@ -55,19 +51,19 @@ func (c *AgentCache) loadAgentConfig(agentID string) (*AgentConfig, error) {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
 
-	agent, err := c.repo.GetAgentByID(agentID)
+	agent, err := c.agentRepo.GetAgent(agentID)
 	if err != nil {
 		return nil, err
 	}
 
-	behavior, err := c.repo.GetAgentBehavior(agentID)
+	behavior, err := c.agentRepo.GetAgentBehavior(agentID)
 	if err != nil {
 		return nil, err
 	}
 
 	var sysInst entity.SystemInstruction
 	if behavior.SystemInstructionId != nil && *behavior.SystemInstructionId != "" {
-		inst, err := c.repo.GetSystemInstruction(*behavior.SystemInstructionId)
+		inst, err := c.systemRepo.GetSystemInstruction(*behavior.SystemInstructionId)
 		if err == nil {
 			sysInst = *inst
 		}
@@ -75,7 +71,7 @@ func (c *AgentCache) loadAgentConfig(agentID string) (*AgentConfig, error) {
 
 	var promptTmpl entity.PromptTemplate
 	if behavior.PromptTemplateId != nil && *behavior.PromptTemplateId != "" {
-		tmpl, err := c.repo.GetPromptTemplate(*behavior.PromptTemplateId)
+		tmpl, err := c.systemRepo.GetPromptTemplate(*behavior.PromptTemplateId)
 		if err == nil {
 			promptTmpl = *tmpl
 		}

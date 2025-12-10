@@ -6,6 +6,7 @@ import (
 	"time"
 
 	aiprovider "github.com/alpinesboltltd/boltz-ai/internal/provider/ai-provider"
+	"github.com/alpinesboltltd/boltz-ai/internal/repository"
 )
 
 type ChatService struct {
@@ -15,10 +16,10 @@ type ChatService struct {
 	cacheMutex sync.RWMutex
 }
 
-func NewChatService(repo AgentRepository) *ChatService {
+func NewChatService(agentRepo repository.AgentRepositoryInterface, systemRepo repository.SystemRepositoryInterface) *ChatService {
 	return &ChatService{
 		llmManager: aiprovider.NewLLMManager(),
-		agentCache: NewAgentCache(repo, 30*time.Minute),
+		agentCache: NewAgentCache(agentRepo, systemRepo, 30*time.Minute),
 		cache:      make(map[string]string),
 	}
 }

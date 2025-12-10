@@ -40,6 +40,16 @@ type TrainingUseCase struct {
 // Returns:
 //   - *TrainingUseCase: Configured training use case
 func NewTrainingUseCase(cohereKey, openaiKey, googleKey, pineconeKey, pineconeIndex, vectorDBType string, db *gorm.DB, agentRepo repository.AgentRepositoryInterface) (*TrainingUseCase, error) {
+	// Trim whitespace from API keys (handles trailing newlines from .env)
+	cohereKey = strings.TrimSpace(cohereKey)
+	openaiKey = strings.TrimSpace(openaiKey)
+	googleKey = strings.TrimSpace(googleKey)
+	pineconeKey = strings.TrimSpace(pineconeKey)
+
+	if cohereKey == "" {
+		return nil, fmt.Errorf("COHERE_API_KEY is empty or not set")
+	}
+
 	cohere, err := rag.NewCohereClient(cohereKey)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create Cohere client: %w", err)

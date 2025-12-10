@@ -65,6 +65,7 @@ func (TrainingData) TableName() string {
 
 type Agent struct {
 	ID               string            `json:"id" gorm:"primaryKey;type:varchar(36)"`
+	WorkspaceID      string            `json:"workspace_id" gorm:"type:uuid;not null;index"`
 	UserId           string            `json:"userId" gorm:"type:varchar(36);not null;index"`
 	Name             string            `json:"name" gorm:"type:varchar(255);not null;index"`
 	Description      string            `json:"description" gorm:"type:text;not null"`
@@ -93,6 +94,7 @@ type AgentUpdate struct {
 
 type AgentResponse struct {
 	ID          string      `json:"id"`
+	WorkspaceID string      `json:"workspace_id"`
 	UserId      string      `json:"userId"`
 	Name        string      `json:"name"`
 	Description string      `json:"description"`

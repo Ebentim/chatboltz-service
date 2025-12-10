@@ -13,6 +13,8 @@ const (
 	SuperAdmin UserRole = "superadmin"
 	Staff      UserRole = "staff"
 	Usr        UserRole = "user"
+	Owner      UserRole = "owner"
+	Member     UserRole = "member"
 )
 
 // NOTE: super admin can only create admin and staff, can create agent, train agent
@@ -37,7 +39,7 @@ type Token struct {
 	ID        string    `json:"id" gorm:"primaryKey;type:varchar(36)"`
 	Email     string    `json:"email" gorm:"type:varchar(255);not null"`
 	Token     string    `json:"token" gorm:"type:text;not null"`
-	Purpose   string    `json:"purpose" gorm:"type:enum('password_reset','2fa', 'login');not null"`
+	Purpose   string    `json:"purpose" gorm:"type:varchar(20);not null"`
 	Used      bool      `json:"used" gorm:"type:boolean;not null;default:false"`
 	ExpiresAt time.Time `json:"expires_at" gorm:"not null"`
 	CreatedAt string    `json:"created_at" gorm:"not null"`
