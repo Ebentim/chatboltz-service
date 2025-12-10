@@ -14,10 +14,10 @@ import (
 )
 
 type DefaultExecutor struct {
-	llmFunc   func(ctx context.Context, input []byte) (string, error)
+	llmFunc    func(ctx context.Context, input []byte) (string, error)
 	smtpClient *smtp.Client
-	store     engine.StateStore
-	ragSvc    *rag.RAGService
+	store      engine.StateStore
+	ragSvc     *rag.RAGService
 }
 
 // NewDefaultExecutor accepts optional dependencies. llmFunc can be nil for placeholder behavior.

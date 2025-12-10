@@ -79,8 +79,8 @@ func (s *PostgresStore) ClaimNextStep(ctx context.Context, workerID string) (*en
 		return nil, tx.Error
 	}
 
-		// raw SQL using WITH c as (...) update ... returning *
-		query := `WITH c AS (
+	// raw SQL using WITH c as (...) update ... returning *
+	query := `WITH c AS (
   SELECT id FROM workflow_steps
   WHERE status = 'pending' AND (next_attempt_at IS NULL OR next_attempt_at <= now())
   ORDER BY seq, created_at

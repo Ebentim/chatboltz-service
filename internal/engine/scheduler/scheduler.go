@@ -13,6 +13,14 @@ import (
 // done channel that will be closed once the scheduler stops and all in-flight
 // workers have finished. This allows callers to wait for graceful shutdown.
 func Start(ctx context.Context, store engine.StateStore, exec engine.Executor, reg engine.WorkflowRegistry, disp engine.Dispatcher, workerCount int) (<-chan struct{}, error) {
+	// Satisfy compiler for unused parameters (scaffold)
+	_ = reg
+	_ = disp
+
+	if workerCount <= 0 {
+		workerCount = 1
+	}
+
 	// worker semaphore
 	sem := make(chan struct{}, workerCount)
 	var wg sync.WaitGroup
@@ -75,7 +83,7 @@ func Start(ctx context.Context, store engine.StateStore, exec engine.Executor, r
 
 					// run step
 					res, err := exec.RunStep(stepCtx, s)
-					
+
 					// Stop heartbeat
 					close(hbDone)
 
