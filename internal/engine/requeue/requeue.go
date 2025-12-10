@@ -13,6 +13,13 @@ import (
 // heartbeat must be to consider a step stale. interval controls how often the
 // monitor runs.
 func StartRequeueMonitor(ctx context.Context, store engine.StateStore, interval time.Duration, heartbeatTTLSeconds int, batchSize int) {
+	if store == nil {
+		log.Printf("requeue: no store provided, monitor disabled")
+		return
+	}
+	if interval <= 0 {
+		interval = 30 * time.Second // sensible default
+	}
 	ticker := time.NewTicker(interval)
 	go func() {
 		defer ticker.Stop()
