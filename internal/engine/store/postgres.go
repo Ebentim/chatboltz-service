@@ -193,7 +193,7 @@ func (s *PostgresStore) RequeueStaleSteps(ctx context.Context, heartbeatTTLSecon
 			maxAttempts = 5
 		}
 
-		if newAttempts >= maxAttempts {
+		if newAttempts > maxAttempts {
 			// mark failed/dead-letter
 			if err := tx.Exec(`UPDATE workflow_steps SET status='failed', attempts = ?, updated_at = ? WHERE id = ?`, newAttempts, now, r.ID).Error; err != nil {
 				tx.Rollback()
