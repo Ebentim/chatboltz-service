@@ -3,10 +3,12 @@ package app
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -78,6 +80,7 @@ func Run(cfg *config.Config) {
 	// Optional: initialize orchestration engine (feature-flagged)
 	var (
 		schedCancel context.CancelFunc
+		schedDone   <-chan struct{}
 	)
 	if cfg.ENABLE_ORCHESTRATION {
 		// create store, registry, dispatcher, executor and start scheduler
@@ -89,13 +92,20 @@ func Run(cfg *config.Config) {
 		// create an LLM manager and pass a small wrapper function to the executor
 		llmManager := aiprovider.NewLLMManager()
 		llmFunc := func(ctx context.Context, input []byte) (string, error) {
-			// Basic wrapper: create a conversation from input JSON {"prompt": "..."}
+			// Basic wrapper: expect input JSON {"prompt": "..."}
 			var m map[string]string
-			_ = json.Unmarshal(input, &m)
-			var msgs []aiprovider.MultimodalMessage
-			if p, ok := m["prompt"]; ok {
-				msgs = append(msgs, aiprovider.MultimodalMessage{Role: aiprovider.RoleUser, Content: p})
+			if err := json.Unmarshal(input, &m); err != nil {
+				return "", fmt.Errorf("invalid LLM input JSON: %w", err)
 			}
+
+			// Ensure prompt exists and is non-empty
+			p, ok := m["prompt"]
+			if !ok || strings.TrimSpace(p) == "" {
+				return "", fmt.Errorf("missing or empty 'prompt' in LLM input")
+			}
+
+			msgs := []aiprovider.MultimodalMessage{{Role: aiprovider.RoleUser, Content: p}}
+
 			// Use default config
 			res, err := llmManager.ProcessMultimodalMessage(entity.Agent{}, msgs, cfg.OPENAI_API_KEY, "", "")
 			if err != nil {
@@ -104,7 +114,10 @@ func Run(cfg *config.Config) {
 			return res, nil
 		}
 		// initialize RAG service for retrieve_context
-		cohereClient, _ := rag.NewCohereClient(cfg.COHERE_API_KEY)
+		cohereClient, err := rag.NewCohereClient(cfg.COHERE_API_KEY)
+		if err != nil {
+			log.Fatalf("failed to initialize Cohere client: %v", err)
+		}
 		ragRepo := repository.NewRAGRepository(db)
 		mediaProcessor := rag.NewMediaProcessorFactory(cfg.OPENAI_API_KEY, cfg.GOOGLE_API_KEY, cfg.COHERE_API_KEY)
 		var vectorDB rag.VectorDB
@@ -119,9 +132,12 @@ func Run(cfg *config.Config) {
 		// start scheduler with cancellable context
 		schedCtx, cancel := context.WithCancel(context.Background())
 		schedCancel = cancel
-		// start scheduler with 4 workers by default
-		if err := engscheduler.Start(schedCtx, store, exec, reg, disp, 4); err != nil {
+		// start scheduler with 4 workers by default; capture done channel
+		done, err := engscheduler.Start(schedCtx, store, exec, reg, disp, 4)
+		if err != nil {
 			log.Printf("orchestration: failed to start scheduler: %v", err)
+		} else {
+			schedDone = done
 		}
 	}
 
@@ -136,6 +152,11 @@ func Run(cfg *config.Config) {
 	// Initialize scraper service + handler
 	scraperService := scraper.NewService(nil)
 	scraperHandler := handler.NewScraperHandler(scraperService)
+
+	// Configure dispatcher delivery timeout from config
+	if cfg.DispatcherDeliveryTimeoutMS > 0 {
+		engdispatcher.DeliveryTimeout = time.Duration(cfg.DispatcherDeliveryTimeoutMS) * time.Millisecond
+	}
 
 	// Setup routes
 	r := gin.Default()
@@ -296,9 +317,18 @@ func Run(cfg *config.Config) {
 	log.Println("Shutting down server...")
 	shuttingDown = true
 
-	// Cancel orchestration scheduler if running
+	// Cancel orchestration scheduler if running and wait (bounded) for it to finish
 	if cfg.ENABLE_ORCHESTRATION && schedCancel != nil {
 		schedCancel()
+		if schedDone != nil {
+			waitTimeout := 30 * time.Second
+			select {
+			case <-schedDone:
+				log.Println("orchestration: scheduler shutdown completed")
+			case <-time.After(waitTimeout):
+				log.Printf("orchestration: scheduler shutdown timed out after %s", waitTimeout)
+			}
+		}
 	}
 
 	// Graceful shutdown with 30 second timeout

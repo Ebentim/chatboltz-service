@@ -22,6 +22,10 @@ type Config struct {
 	SMTP_PASS                string `env:"SMTP_PASS,required"`
 	OTP_SECRET               string `env:"OTP_SECRET,required"`
 	ENABLE_ORCHESTRATION     bool   `env:"ENABLE_ORCHESTRATION,default=false"`
+	// DispatcherDeliveryTimeoutMS controls how long the in-memory dispatcher will
+	// wait for a subscriber to accept an event before considering it dropped.
+	// Value is in milliseconds.
+	DispatcherDeliveryTimeoutMS int `env:"DISPATCHER_DELIVERY_TIMEOUT_MS,default=100"`
 }
 
 // Vector DB Types

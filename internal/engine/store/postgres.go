@@ -2,7 +2,6 @@ package store
 
 import (
 	"context"
-	"database/sql"
 	"log"
 	"time"
 
@@ -94,20 +93,16 @@ FROM c
 WHERE ws.id = c.id
 RETURNING ws.*;`
 
-	// Use tx.Raw to execute and scan
-	row := tx.Raw(query, workerID).Row()
-	// row.Scan into out (use sql.Rows scan)
-	cols := []interface{}{
-		&out.ID, &out.RunID, &out.StepName, &out.Seq, &out.Status, &out.Input, &out.Result,
-		&out.Attempts, &out.MaxAttempts, &out.NextAttemptAt, &out.ClaimedAt, &out.LastHeartbeat,
-		&out.LockOwner, &out.IdempotencyKey, &out.Error, &out.CreatedAt, &out.UpdatedAt,
-	}
-	if err := row.Scan(cols...); err != nil {
+	// Execute the query via GORM and scan into the entity struct.
+	// Use RowsAffected to detect no-result case and return (nil, nil).
+	res := tx.Raw(query, workerID).Scan(&out)
+	if res.Error != nil {
 		tx.Rollback()
-		if err == sql.ErrNoRows {
-			return nil, nil
-		}
-		return nil, err
+		return nil, res.Error
+	}
+	if res.RowsAffected == 0 {
+		tx.Rollback()
+		return nil, nil
 	}
 
 	if err := tx.Commit().Error; err != nil {
@@ -115,14 +110,14 @@ RETURNING ws.*;`
 	}
 
 	// map to engine model
-	res := &eng.WorkflowStepRecord{
+	rec := &eng.WorkflowStepRecord{
 		ID: out.ID, RunID: out.RunID, StepName: out.StepName, Seq: out.Seq, Status: out.Status,
 		Input: out.Input, Result: out.Result, Attempts: out.Attempts, MaxAttempts: out.MaxAttempts,
 		NextAttemptAt: out.NextAttemptAt, ClaimedAt: out.ClaimedAt, LastHeartbeat: out.LastHeartbeat,
 		LockOwner: out.LockOwner, IdempotencyKey: out.IdempotencyKey, Error: out.Error,
 		CreatedAt: out.CreatedAt, UpdatedAt: out.UpdatedAt,
 	}
-	return res, nil
+	return rec, nil
 }
 
 func (s *PostgresStore) UpdateStep(ctx context.Context, step *eng.WorkflowStepRecord) error {

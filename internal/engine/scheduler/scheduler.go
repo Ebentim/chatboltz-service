@@ -3,24 +3,35 @@ package scheduler
 import (
 	"context"
 	"log"
+	"sync"
 	"time"
 
 	"github.com/alpinesboltltd/boltz-ai/internal/engine"
 )
 
-// Start begins a simple scheduler loop and worker dispatch. This is a scaffold
-// to be extended: it shows how to claim steps from the StateStore and run them
-// using an Executor.
-func Start(ctx context.Context, store engine.StateStore, exec engine.Executor, reg engine.WorkflowRegistry, disp engine.Dispatcher, workerCount int) error {
+// Start begins a simple scheduler loop and worker dispatch. It returns a
+// done channel that will be closed once the scheduler stops and all in-flight
+// workers have finished. This allows callers to wait for graceful shutdown.
+func Start(ctx context.Context, store engine.StateStore, exec engine.Executor, reg engine.WorkflowRegistry, disp engine.Dispatcher, workerCount int) (<-chan struct{}, error) {
 	// worker semaphore
 	sem := make(chan struct{}, workerCount)
+	var wg sync.WaitGroup
+
+	done := make(chan struct{})
 
 	ticker := time.NewTicker(500 * time.Millisecond)
 	go func() {
+		defer func() {
+			// wait for workers to finish
+			wg.Wait()
+			ticker.Stop()
+			close(done)
+		}()
+
 		for {
 			select {
 			case <-ctx.Done():
-				ticker.Stop()
+				// stop accepting new work and wait for in-flight workers
 				return
 			case <-ticker.C:
 				// try claim a step
@@ -34,8 +45,9 @@ func Start(ctx context.Context, store engine.StateStore, exec engine.Executor, r
 				}
 
 				sem <- struct{}{}
+				wg.Add(1)
 				go func(s *engine.WorkflowStepRecord) {
-					defer func() { <-sem }()
+					defer func() { <-sem; wg.Done() }()
 					// run step
 					res, err := exec.RunStep(ctx, s)
 					if err != nil {
@@ -55,5 +67,5 @@ func Start(ctx context.Context, store engine.StateStore, exec engine.Executor, r
 		}
 	}()
 
-	return nil
+	return done, nil
 }
