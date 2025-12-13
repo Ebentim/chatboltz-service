@@ -166,6 +166,7 @@ func Run(cfg *config.Config) {
 	otpHandler := handler.NewOTPHandler(otpUsecase, emailService)
 	trainingHandler := handler.NewTrainingHandler(trainingUsecase, workspaceUsecase)
 	workspaceHandler := handler.NewWorkspaceHandler(workspaceUsecase)
+	googleHandler := handler.NewGoogleHandler(agentUsecase)
 
 	// Initialize scraper service + handler
 	scraperService := scraper.NewService(nil)
@@ -231,9 +232,12 @@ func Run(cfg *config.Config) {
 
 		agent := api.Group("/agent")
 		agent.Use(middleware.AuthMiddleware([]byte(cfg.JWT_SECRET)))
+		agent.Use(middleware.WorkspaceAuthMiddleware(workspaceUsecase))
 		{
 			// Core agent operations
 			agent.POST("/create", agentHandler.CreateAgent)
+			agent.POST("/hire", agentHandler.HireAgent)
+			agent.GET("/templates", agentHandler.ListTemplates)
 			agent.PATCH("/update/:agentId", agentHandler.UpdateAgent)
 			agent.GET("/:agentId", agentHandler.GetAgent)
 			agent.GET("/agents/:userId", agentHandler.GetAgentByUser)
@@ -267,6 +271,11 @@ func Run(cfg *config.Config) {
 			agent.PATCH("/:agentId/integration", agentHandler.UpdateAgentIntegration)
 			agent.DELETE("/:agentId/integration", agentHandler.DeleteAgentIntegration)
 
+			// Google Integrations
+			agent.POST("/:agentId/integrations/google/:service/connect", googleHandler.ConnectService)
+			agent.DELETE("/:agentId/integrations/google/:service/disconnect", googleHandler.DisconnectService)
+			agent.GET("/:agentId/integrations/google/status", googleHandler.GetStatus)
+
 			// Agent training
 			agent.POST("/:agentId/train/text", trainingHandler.TrainWithText)
 			agent.POST("/:agentId/train/file", trainingHandler.TrainWithFile)
@@ -295,6 +304,8 @@ func Run(cfg *config.Config) {
 			system.POST("/templates", systemHandler.CreatePromptTemplate)
 			system.GET("/templates/:id", systemHandler.GetPromptTemplate)
 			system.GET("/templates", systemHandler.ListPromptTemplates)
+			system.PATCH("/templates/:id", systemHandler.UpdatePromptTemplate)
+			system.DELETE("/templates/:id", systemHandler.DeletePromptTemplate)
 		}
 
 		aiModels := api.Group("/ai-models")

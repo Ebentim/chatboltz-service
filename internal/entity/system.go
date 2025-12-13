@@ -89,6 +89,7 @@ type PromptTemplate struct {
 	ID        string `json:"id" gorm:"primaryKey;type:varchar(36)"`
 	Title     string `json:"title" gorm:"type:varchar(255);not null;index"`
 	Content   string `json:"content" gorm:"type:text;not null"`
+	Role      string `json:"role" gorm:"type:varchar(50);not null;default:'virtual_assistant';index"`
 	CreatedAt string `json:"created_at" gorm:"not null"`
 	UpdatedAt string `json:"updated_at" gorm:"not null"`
 }

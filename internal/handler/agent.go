@@ -69,11 +69,69 @@ func (h *AgentHandler) CreateAgent(c *gin.Context) {
 	// Use the authenticated user's ID
 	req.UserId = userID
 
-	agent, err := h.agentUsecase.CreateNewAgent(req.UserId, req.WorkspaceID, req.Name, req.Description, req.AiModelId, req.AgentType, req.Status)
+	agent, err := h.agentUsecase.CreateNewAgent(req.UserId, req.WorkspaceID, req.Name, req.Description, req.AiModelId, req.Role, req.AgentType, req.Status, req.IsTemplate, req.Tags)
 	if err != nil {
 		appErrors.HandleError(c, err, "CreateAgent")
 		return
 	}
+	c.JSON(http.StatusCreated, gin.H{"agent": agent})
+}
+
+func (h *AgentHandler) ListTemplates(c *gin.Context) {
+	agents, err := h.agentUsecase.ListTemplates()
+	if err != nil {
+		appErrors.HandleError(c, err, "ListTemplates")
+		return
+	}
+	// Transform to response
+	var responses []entity.AgentResponse
+	for _, a := range *agents {
+		responses = append(responses, entity.AgentResponse{
+			ID:          a.ID,
+			Name:        a.Name,
+			Description: a.Description,
+			Role:        a.Role,
+			IsTemplate:  a.IsTemplate,
+			Tags:        a.Tags,
+			AgentType:   a.AgentType,
+			WorkspaceID: a.WorkspaceID,
+			Status:      a.Status,
+			AiModelId:   a.AiModelId,
+		})
+	}
+	c.JSON(http.StatusOK, gin.H{"templates": responses})
+}
+
+func (h *AgentHandler) HireAgent(c *gin.Context) {
+	// 1. Get User and Workspace context
+	userID := c.GetString("userID")
+	workspaceID := c.GetHeader("X-Workspace-ID")
+	// Role check already done by middleware for workspace access.
+	// We might want to ensure only Owner/Admin can hire?
+	// workspaceRole := c.GetString("workspaceRole")
+	// if workspaceRole == "member" { return Forbidden } (Optional, stick to plan)
+
+	// 2. Parse Request
+	var req struct {
+		SystemAgentID string `json:"system_agent_id" binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		appErrors.HandleError(c, appErrors.NewValidationError("Invalid request format"), "HireAgent")
+		return
+	}
+
+	if workspaceID == "" {
+		appErrors.HandleError(c, appErrors.NewValidationError("Workspace ID is required"), "HireAgent")
+		return
+	}
+
+	// 3. Call Usecase
+	agent, err := h.agentUsecase.HireAgent(userID, workspaceID, req.SystemAgentID)
+	if err != nil {
+		appErrors.HandleError(c, err, "HireAgent")
+		return
+	}
+
 	c.JSON(http.StatusCreated, gin.H{"agent": agent})
 }
 
@@ -197,6 +255,7 @@ func (h *AgentHandler) GetAgentByUser(c *gin.Context) {
 			UserId:      agent.UserId,
 			Name:        agent.Name,
 			Description: agent.Description,
+			Role:        agent.Role,
 			AgentType:   agent.AgentType,
 			AiModelId:   agent.AiModelId,
 			AiModel:     agent.AiModel,

@@ -121,6 +121,7 @@ func (h *SystemHandler) CreatePromptTemplate(c *gin.Context) {
 	var req struct {
 		Title   string `json:"title" binding:"required"`
 		Content string `json:"content" binding:"required"`
+		Role    string `json:"role"`
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -128,7 +129,7 @@ func (h *SystemHandler) CreatePromptTemplate(c *gin.Context) {
 		return
 	}
 
-	template, err := h.systemUsecase.CreatePromptTemplate(req.Title, req.Content)
+	template, err := h.systemUsecase.CreatePromptTemplate(req.Title, req.Content, req.Role)
 	if err != nil {
 		appErrors.HandleError(c, err, "CreatePromptTemplate")
 		return
@@ -148,10 +149,56 @@ func (h *SystemHandler) GetPromptTemplate(c *gin.Context) {
 }
 
 func (h *SystemHandler) ListPromptTemplates(c *gin.Context) {
-	templates, err := h.systemUsecase.ListPromptTemplates()
+	role := c.Query("role")
+	templates, err := h.systemUsecase.ListPromptTemplates(role)
 	if err != nil {
 		appErrors.HandleError(c, err, "ListPromptTemplates")
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"templates": templates})
+}
+
+func (h *SystemHandler) UpdatePromptTemplate(c *gin.Context) {
+	userRole := c.GetString("role")
+	if userRole != string(entity.SuperAdmin) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Only superadmin can update prompt templates"})
+		return
+	}
+
+	id := c.Param("id")
+	var req struct {
+		Title   string `json:"title,omitempty"`
+		Content string `json:"content,omitempty"`
+		Role    string `json:"role,omitempty"`
+	}
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		appErrors.HandleError(c, appErrors.NewValidationError("Invalid request format"), "UpdatePromptTemplate - JSON binding")
+		return
+	}
+
+	template, err := h.systemUsecase.UpdatePromptTemplate(id, req.Title, req.Content, req.Role)
+	if err != nil {
+		appErrors.HandleError(c, err, "UpdatePromptTemplate")
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"template": template})
+}
+
+func (h *SystemHandler) DeletePromptTemplate(c *gin.Context) {
+	userRole := c.GetString("role")
+	if userRole != string(entity.SuperAdmin) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Only superadmin can delete prompt templates"})
+		return
+	}
+
+	id := c.Param("id")
+	err := h.systemUsecase.DeletePromptTemplate(id)
+	if err != nil {
+		appErrors.HandleError(c, err, "DeletePromptTemplate")
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Prompt template deleted successfully"})
 }

@@ -14,6 +14,7 @@ type WorkspaceUsecase interface {
 	GetWorkspace(id string) (*entity.Workspace, error)
 	GetByAgentID(agentID string) (*entity.Workspace, error)
 	GetUserWorkspaces(userID string) ([]entity.Workspace, error)
+	GetMemberRole(workspaceID, userID string) (string, error)
 	AddMember(workspaceID, userID, role string) error
 }
 
@@ -83,4 +84,12 @@ func (u *workspaceUsecase) AddMember(workspaceID, userID, role string) error {
 		UpdatedAt:   time.Now(),
 	}
 	return u.repo.AddMember(member)
+}
+
+func (u *workspaceUsecase) GetMemberRole(workspaceID, userID string) (string, error) {
+	member, err := u.repo.GetMember(workspaceID, userID)
+	if err != nil {
+		return "", err
+	}
+	return member.Role, nil
 }

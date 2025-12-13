@@ -17,7 +17,8 @@ type UserRepositoryInterface interface {
 }
 
 type AgentRepositoryInterface interface {
-	CreateAgent(userId, workspaceId, name, description, aiModelId string, agentType entity.AgentType, status entity.AgentStatus) (*entity.Agent, error)
+	CreateAgent(userId, workspaceId, name, description, aiModelId, role string, agentType entity.AgentType, status entity.AgentStatus, isTemplate bool, tags []string) (*entity.Agent, error)
+	ListTemplates() (*[]entity.Agent, error)
 	CreateAgentAppearance(agent_id, primary_color, font_family, chat_icon, welcome_message, position, icon_size, bubble_style string) (*entity.AgentAppearance, error)
 	CreateAgentBehavior(agent_id, fallback_message, Offline_message, system_instruction_id, prompt_template_id string, enable_human_handoff bool, temperature float64, max_tokens int) (*entity.AgentBehavior, error)
 	CreateAgentChannel(agent_id string, channel_id []string) (*entity.AgentChannel, error)
@@ -57,9 +58,11 @@ type SystemRepositoryInterface interface {
 	UpdateSystemInstruction(instruction *entity.SystemInstruction) error
 	DeleteSystemInstruction(id string) error
 	ListSystemInstructions() (*[]entity.SystemInstruction, error)
-	CreatePromptTemplate(title, content string) (*entity.PromptTemplate, error)
+	CreatePromptTemplate(title, content, role string) (*entity.PromptTemplate, error)
 	GetPromptTemplate(id string) (*entity.PromptTemplate, error)
-	ListPromptTemplates() (*[]entity.PromptTemplate, error)
+	UpdatePromptTemplate(template *entity.PromptTemplate) error
+	DeletePromptTemplate(id string) error
+	ListPromptTemplates(role string) (*[]entity.PromptTemplate, error)
 }
 
 // RAGRepositoryInterface defines the contract for RAG data persistence operations.

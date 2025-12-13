@@ -66,11 +66,12 @@ func (r *SystemRepository) ListSystemInstructions() (*[]entity.SystemInstruction
 	return &instructions, nil
 }
 
-func (r *SystemRepository) CreatePromptTemplate(title, content string) (*entity.PromptTemplate, error) {
+func (r *SystemRepository) CreatePromptTemplate(title, content, role string) (*entity.PromptTemplate, error) {
 	template := &entity.PromptTemplate{
 		ID:        uuid.New().String(),
 		Title:     title,
 		Content:   content,
+		Role:      role,
 		CreatedAt: time.Now().UTC().Format(time.RFC3339),
 		UpdatedAt: time.Now().UTC().Format(time.RFC3339),
 	}
@@ -92,9 +93,25 @@ func (r *SystemRepository) GetPromptTemplate(id string) (*entity.PromptTemplate,
 	return &template, nil
 }
 
-func (r *SystemRepository) ListPromptTemplates() (*[]entity.PromptTemplate, error) {
+func (r *SystemRepository) UpdatePromptTemplate(template *entity.PromptTemplate) error {
+	template.UpdatedAt = time.Now().UTC().Format(time.RFC3339)
+	return r.db.Save(template).Error
+}
+
+func (r *SystemRepository) DeletePromptTemplate(id string) error {
+	if err := r.db.Where("id = ?", id).Delete(&entity.PromptTemplate{}).Error; err != nil {
+		return appErrors.WrapDatabaseError(err, "delete prompt template")
+	}
+	return nil
+}
+
+func (r *SystemRepository) ListPromptTemplates(role string) (*[]entity.PromptTemplate, error) {
 	var templates []entity.PromptTemplate
-	if err := r.db.Find(&templates).Error; err != nil {
+	query := r.db
+	if role != "" {
+		query = query.Where("role = ?", role)
+	}
+	if err := query.Find(&templates).Error; err != nil {
 		return nil, appErrors.WrapDatabaseError(err, "list prompt templates")
 	}
 	return &templates, nil
