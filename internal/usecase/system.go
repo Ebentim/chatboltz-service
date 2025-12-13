@@ -71,12 +71,7 @@ func (u *SystemUsecase) ListSystemInstructions() (*[]entity.SystemInstruction, e
 	return u.System.ListSystemInstructions()
 }
 
-func (u *SystemUsecase) CreatePromptTemplate(title, content string) (*entity.PromptTemplate, error) {
-	if title == "" || content == "" {
-		return nil, appErrors.NewValidationError("Title and content are required")
-	}
-	return u.System.CreatePromptTemplate(title, content)
-}
+
 
 func (u *SystemUsecase) GetPromptTemplate(id string) (*entity.PromptTemplate, error) {
 	if id == "" {
@@ -85,6 +80,50 @@ func (u *SystemUsecase) GetPromptTemplate(id string) (*entity.PromptTemplate, er
 	return u.System.GetPromptTemplate(id)
 }
 
-func (u *SystemUsecase) ListPromptTemplates() (*[]entity.PromptTemplate, error) {
-	return u.System.ListPromptTemplates()
+func (u *SystemUsecase) ListPromptTemplates(role string) (*[]entity.PromptTemplate, error) {
+	return u.System.ListPromptTemplates(role)
 }
+
+func (u *SystemUsecase) UpdatePromptTemplate(id, title, content, role string) (*entity.PromptTemplate, error) {
+	if id == "" {
+		return nil, appErrors.NewValidationError("Prompt template ID is required")
+	}
+
+	template, err := u.System.GetPromptTemplate(id)
+	if err != nil {
+		return nil, err
+	}
+
+	if title != "" {
+		template.Title = title
+	}
+	if content != "" {
+		template.Content = content
+	}
+	if role != "" {
+		template.Role = role
+	}
+
+	if err := u.System.UpdatePromptTemplate(template); err != nil {
+		return nil, err
+	}
+	return template, nil
+}
+
+func (u *SystemUsecase) DeletePromptTemplate(id string) error {
+	if id == "" {
+		return appErrors.NewValidationError("Prompt template ID is required")
+	}
+	return u.System.DeletePromptTemplate(id)
+}
+
+func (u *SystemUsecase) CreatePromptTemplate(title, content, role string) (*entity.PromptTemplate, error) {
+	if title == "" || content == "" {
+		return nil, appErrors.NewValidationError("Title and content are required")
+	}
+	if role == "" {
+		role = "virtual_assistant" // Default
+	}
+	return u.System.CreatePromptTemplate(title, content, role)
+}
+

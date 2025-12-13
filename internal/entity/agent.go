@@ -69,7 +69,10 @@ type Agent struct {
 	UserId           string            `json:"userId" gorm:"type:varchar(36);not null;index"`
 	Name             string            `json:"name" gorm:"type:varchar(255);not null;index"`
 	Description      string            `json:"description" gorm:"type:text;not null"`
+	Role             string            `json:"role" gorm:"type:varchar(50);not null;default:'virtual_assistant';index"` // virtual_assistant, customer_support, sdr, bdr
 	AgentType        AgentType         `json:"agent_type" gorm:"type:int;not null;index"`
+	IsTemplate       bool              `json:"is_template" gorm:"type:boolean;default:false;index"`
+	Tags             StringArray       `json:"tags" gorm:"type:text[]"`
 	AiModelId        string            `json:"ai_model_id" gorm:"type:varchar(36);not null;index"`
 	Status           AgentStatus       `json:"status" gorm:"type:varchar(20);not null;index"`
 	CreatedAt        string            `json:"created_at" gorm:"not null"`
@@ -98,6 +101,9 @@ type AgentResponse struct {
 	UserId      string      `json:"userId"`
 	Name        string      `json:"name"`
 	Description string      `json:"description"`
+	Role        string      `json:"role"`
+	IsTemplate  bool        `json:"is_template"`
+	Tags        []string    `json:"tags"`
 	AgentType   AgentType   `json:"agent_type"`
 	AiModelId   string      `json:"ai_model_id"`
 	AiModel     *AiModel    `json:"ai_model,omitempty"`

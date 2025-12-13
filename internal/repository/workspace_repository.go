@@ -13,6 +13,7 @@ type WorkspaceRepository interface {
 	Update(workspace *entity.Workspace) error
 	Delete(id string) error
 	AddMember(member *entity.WorkspaceMember) error
+	GetMember(workspaceID, userID string) (*entity.WorkspaceMember, error)
 	RemoveMember(workspaceID, userID string) error
 }
 
@@ -55,6 +56,7 @@ func (r *workspaceRepository) GetByUserID(userID string) ([]entity.Workspace, er
 	// or query both. Let's assume owner is added as a member upon creation.
 	err := r.db.Joins("JOIN workspace_members ON workspace_members.workspace_id = workspaces.id").
 		Where("workspace_members.user_id = ?", userID).
+		Preload("Members").
 		Find(&workspaces).Error
 	return workspaces, err
 }
@@ -69,6 +71,14 @@ func (r *workspaceRepository) Delete(id string) error {
 
 func (r *workspaceRepository) AddMember(member *entity.WorkspaceMember) error {
 	return r.db.Create(member).Error
+}
+
+func (r *workspaceRepository) GetMember(workspaceID, userID string) (*entity.WorkspaceMember, error) {
+	var member entity.WorkspaceMember
+	if err := r.db.Where("workspace_id = ? AND user_id = ?", workspaceID, userID).First(&member).Error; err != nil {
+		return nil, err
+	}
+	return &member, nil
 }
 
 func (r *workspaceRepository) RemoveMember(workspaceID, userID string) error {

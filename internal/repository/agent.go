@@ -18,14 +18,17 @@ func NewAgentRepository(db *gorm.DB) AgentRepositoryInterface {
 	return &AgentRepository{db: db}
 }
 
-func (r *AgentRepository) CreateAgent(userId, workspaceId, name, description, aiModelId string, agentType entity.AgentType, status entity.AgentStatus) (*entity.Agent, error) {
+func (r *AgentRepository) CreateAgent(userId, workspaceId, name, description, aiModelId, role string, agentType entity.AgentType, status entity.AgentStatus, isTemplate bool, tags []string) (*entity.Agent, error) {
 	agent := &entity.Agent{
 		ID:          uuid.New().String(),
 		UserId:      userId,
 		WorkspaceID: workspaceId,
 		Name:        name,
 		Description: description,
+		Role:        role,
 		AgentType:   agentType,
+		IsTemplate:  isTemplate,
+		Tags:        entity.StringArray(tags),
 		AiModelId:   aiModelId,
 		Status:      status,
 		CreatedAt:   time.Now().UTC().Format(time.RFC3339),
@@ -37,6 +40,16 @@ func (r *AgentRepository) CreateAgent(userId, workspaceId, name, description, ai
 	}
 
 	return agent, nil
+}
+
+func (r *AgentRepository) ListTemplates() (*[]entity.Agent, error) {
+	var agents []entity.Agent
+	// Fetch agents where is_template = true
+	// Preload necessary fields if needed
+	if err := r.db.Preload("AiModel").Where("is_template = ?", true).Find(&agents).Error; err != nil {
+		return nil, appErrors.WrapDatabaseError(err, "list templates")
+	}
+	return &agents, nil
 }
 
 func (r *AgentRepository) UpdateAgentByID(id string, update entity.AgentUpdate) error {

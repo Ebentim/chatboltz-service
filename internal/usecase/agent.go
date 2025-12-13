@@ -1,6 +1,8 @@
 package usecase
 
 import (
+	"time"
+
 	"github.com/alpinesboltltd/boltz-ai/internal/entity"
 	appErrors "github.com/alpinesboltltd/boltz-ai/internal/errors"
 	"github.com/alpinesboltltd/boltz-ai/internal/repository"
@@ -16,16 +18,103 @@ func NewAgentUseCase(agentRepo repository.AgentRepositoryInterface) *AgentUsecas
 	}
 }
 
-func (u *AgentUsecase) CreateNewAgent(userId, workspaceId, name, description, aiModelId string, agentType entity.AgentType, status entity.AgentStatus) (*entity.Agent, error) {
+func (u *AgentUsecase) CreateNewAgent(userId, workspaceId, name, description, aiModelId, role string, agentType entity.AgentType, status entity.AgentStatus, isTemplate bool, tags []string) (*entity.Agent, error) {
 	if userId == "" || name == "" {
 		return nil, appErrors.NewValidationError("User ID and name are required")
 	}
 
-	agent, err := u.Agent.CreateAgent(userId, workspaceId, name, description, aiModelId, agentType, status)
+	if role == "" {
+		role = "virtual_assistant"
+	}
+
+	agent, err := u.Agent.CreateAgent(userId, workspaceId, name, description, aiModelId, role, agentType, status, isTemplate, tags)
 	if err != nil {
 		return nil, err
 	}
 	return agent, nil
+}
+
+func (u *AgentUsecase) ListTemplates() (*[]entity.Agent, error) {
+	return u.Agent.ListTemplates()
+}
+
+func (u *AgentUsecase) HireAgent(userId, workspaceId, systemAgentId string) (*entity.Agent, error) {
+	// 1. Get the System/Template Agent
+	// For now, "systemAgentId" assumes an existing agent ID or a specific template.
+	// We'll assume we can copy from an existing agent using GetAgentWithDetails logic but we only need basic info + config for now.
+	// Actually, the plan says SuperAdmin creates "Base Agents". So they are just regular agents with a specific flag or just owned by SuperAdmin.
+
+	sourceAgent, err := u.Agent.GetAgentWithDetails(systemAgentId)
+	if err != nil {
+		return nil, err
+	}
+
+	// 2. clone basic info
+	newAgent, err := u.Agent.CreateAgent(
+		userId,
+		workspaceId,
+		sourceAgent.Name,
+		sourceAgent.Description,
+		sourceAgent.AiModelId,
+		sourceAgent.Role,
+		sourceAgent.AgentType,
+		entity.Active, // Hired agents are active by default
+		false,         // Hired agents are NOT templates
+		sourceAgent.Tags, // Inherit tags? maybe
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	// 3. Clone Configs (Appearance, Behavior, etc)
+	if sourceAgent.AgentAppearance != nil {
+		if _, err := u.Agent.CreateAgentAppearance(
+			newAgent.ID,
+			sourceAgent.AgentAppearance.PrimaryColor,
+			sourceAgent.AgentAppearance.FontFamily,
+			sourceAgent.AgentAppearance.ChatIcon,
+			sourceAgent.AgentAppearance.WelcomeMessage,
+			sourceAgent.AgentAppearance.Position,
+			sourceAgent.AgentAppearance.IconSize,
+			sourceAgent.AgentAppearance.BubbleStyle,
+		); err != nil {
+			// Log error but continue? Or fail? Better fail or rollback.
+			// For simple MVP, return error.
+			return nil, err
+		}
+	}
+
+	if sourceAgent.AgentBehavior != nil {
+		sysId := ""
+		if sourceAgent.AgentBehavior.SystemInstructionId != nil {
+			sysId = *sourceAgent.AgentBehavior.SystemInstructionId
+		}
+		tmplId := ""
+		if sourceAgent.AgentBehavior.PromptTemplateId != nil {
+			tmplId = *sourceAgent.AgentBehavior.PromptTemplateId
+		}
+
+		if _, err := u.Agent.CreateAgentBehavior(
+			newAgent.ID,
+			sourceAgent.AgentBehavior.FallbackMessage,
+			sourceAgent.AgentBehavior.OfflineMessage,
+			sysId,
+			tmplId,
+			sourceAgent.AgentBehavior.EnableHumanHandoff,
+			sourceAgent.AgentBehavior.Temperature,
+			sourceAgent.AgentBehavior.MaxTokens,
+		); err != nil {
+			return nil, err
+		}
+	}
+
+	// Stats initialized automatically? No, create empty stats.
+	if _, err := u.Agent.CreateAgentStats(newAgent.ID, 0, 0, 0, 0, 0, time.Now()); err != nil {
+		// ignore
+	}
+
+	// Done cloning
+	return newAgent, nil
 }
 
 func (u *AgentUsecase) UpdateAgent(id string, update entity.AgentUpdate) (*entity.Agent, error) {
@@ -61,6 +150,7 @@ func (u *AgentUsecase) GetAgent(id string) (*entity.AgentDetailResponse, error) 
 			UserId:      agent.UserId,
 			Name:        agent.Name,
 			Description: agent.Description,
+			Role:        agent.Role,
 			AgentType:   agent.AgentType,
 			AiModel:     agent.AiModel,
 			Status:      agent.Status,
